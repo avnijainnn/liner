@@ -94,6 +94,9 @@ textarea{min-height:150px;resize:vertical;font:13px/1.5 var(--mono)}
 .what{font-weight:600;font-size:17px;line-height:1.35;margin:6px 0 12px}
 .trio{display:grid;grid-template-columns:minmax(0,1fr) 44px minmax(0,1fr);row-gap:10px;align-items:start;font-size:14.5px}
 .trio::before{content:"≠";grid-column:2;grid-row:1;align-self:center;justify-self:center;font-size:34px;line-height:1;color:var(--bad)}
+.trio.eq::before{content:"=";color:var(--ok)}
+.trio.na::before{content:"?";color:var(--warn);font-size:28px}
+.vs:has(.pane:not(.good):not(.badp):nth-child(2))::before{}
 .trio>div{min-width:0}
 .trio>div:nth-child(1){grid-column:1;grid-row:1;color:var(--accent);font-weight:550}
 .trio>div:nth-child(2){grid-column:3;grid-row:1;font-weight:550}
@@ -160,6 +163,31 @@ td{padding:11px 10px;border-bottom:1px solid var(--line);vertical-align:top;font
 @media (max-width:820px){.probs{width:100%}.probs button{flex:1 1 100%;border-right:0;border-bottom:1px solid var(--line)}}
 .tally{font-size:15px;color:var(--ink-2);max-width:78ch;margin:0 0 22px;padding:13px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
 .tally b{color:var(--ink);font-weight:700}
+.stages{display:flex;flex-wrap:wrap;gap:4px 0;list-style:none;margin:12px 0 0;padding:0;font-size:13px;color:var(--muted)}
+.stages li{display:flex;align-items:center;gap:6px;white-space:nowrap}
+.stages li:not(:last-child)::after{content:"";width:18px;height:1px;background:var(--line-2);margin:0 8px}
+.stages li::before{content:"";flex:none;width:9px;height:9px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--line-2)}
+.stages li.done{color:var(--ink)} .stages li.done::before{background:var(--ok);box-shadow:none}
+.stages li.missing{color:var(--bad);font-weight:600} .stages li.missing::before{background:var(--bad);box-shadow:none}
+.stages li.unproven{color:var(--warn);font-weight:600} .stages li.unproven::before{box-shadow:inset 0 0 0 2px var(--warn);background:var(--warn-soft)}
+.stages li.unknown::before{box-shadow:inset 0 0 0 1.5px var(--faint);background:repeating-linear-gradient(45deg,var(--faint) 0 1px,transparent 1px 3px)}
+.stages.big{flex-direction:column;gap:0;margin-top:10px;font-size:14px}
+.stages.big li{align-items:flex-start;white-space:normal;padding:8px 0 8px 0;border-top:1px solid var(--line)}
+.stages.big li:first-child{border-top:0}
+.stages.big li::after{display:none}
+.stages.big li::before{margin-top:6px}
+.stages.big li span{display:grid;grid-template-columns:minmax(150px,auto) 1fr;gap:2px 14px;width:100%}
+.stages.big b{font-weight:600} .stages.big em{font-style:normal;font-size:13px;justify-self:start}
+.stages.big small{grid-column:1 / -1;color:var(--muted);font-size:13px}
+.ignored{margin-top:12px;padding-top:12px;border-top:1px dashed var(--line-2);font-size:13.5px}
+.ignored b{display:block;font-weight:600;margin-bottom:4px} .ignored p{color:var(--muted);margin-top:3px}
+.rec-card{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--warn);border-radius:var(--r);padding:18px 20px}
+.rec-card.verified,.rec-card.approved{border-left-color:var(--ok)} .rec-card.failed,.rec-card.declined,.rec-card.void{border-left-color:var(--bad)} .rec-card.skipped,.rec-card.rejected{border-left-color:var(--line-2)}
+.params{display:grid;grid-template-columns:max-content 1fr;gap:6px 18px;margin:12px 0 0;font-size:14px}
+.params dt{color:var(--muted)} .params dd{margin:0;color:var(--accent);font-weight:550;min-width:0;overflow-wrap:anywhere}
+.limit{font-size:13px;color:var(--muted);margin-top:10px} .limit b{color:var(--ink);margin-right:6px}
+.approve-box{margin-top:14px;padding:14px 16px;background:var(--accent-soft);border-radius:var(--r-sm);font-size:14px}
+@media (max-width:640px){.params{grid-template-columns:1fr}.params dt{margin-top:6px}.stages.big li span{grid-template-columns:1fr}}
 .slider{display:grid;grid-template-columns:minmax(0,1fr) 120px 40px;gap:10px;align-items:center;font-size:14px;padding:5px 0}
 .slider input{width:100%;accent-color:var(--accent)}
 .empty{padding:36px 16px;color:var(--muted)}
@@ -340,10 +368,10 @@ const HANDOFF_REQ=/\b(?:speak|talk)\s+(?:to|with)\s+(?:a|an|the|your)?\s*(?:real
 function sentences(text){ const out=[]; let pos=0; for(const part of text.split(/(?<=[.!?])\s+(?=[A-Z"'])/)){ const i=text.indexOf(part,pos); out.push([i,part]); pos=i+part.length; } return out; }
 function labels(turns){
   const out=[];
-  for(const t of turns) for(const [off,s] of sentences(t.text)){
-    if(t.role==='caller'){ if(HANDOFF_REQ.test(s)) out.push({turn:t.i,start:off,end:off+s.length,quote:s,kind:'handoff_request',cls:'person'}); continue; }
-    if(ASK_FORM.test(s)&&!ASK_NEG.test(s)) for(const [c,rx] of Object.entries(ASK_RX)) if(rx.test(s)) out.push({turn:t.i,start:off,end:off+s.length,quote:s,kind:'ask',cls:c});
-    if(PROMISE_MARK.test(s)&&!PROMISE_NEG.test(s)&&!s.trim().endsWith('?')) for(const [c,rx] of Object.entries(PROM_RX)) if(rx.test(s)) out.push({turn:t.i,start:off,end:off+s.length,quote:s,kind:'promise',cls:c});
+  for(const t of turns) for(const [off,s0] of sentences(t.text)){ const s=s0.replace(/[\u2018\u2019]/g,"'");   // curly apostrophes match like straight ones
+    if(t.role==='caller'){ if(HANDOFF_REQ.test(s)) out.push({turn:t.i,start:off,end:off+s.length,quote:s0,kind:'handoff_request',cls:'person'}); continue; }
+    if(ASK_FORM.test(s)&&!ASK_NEG.test(s)) for(const [c,rx] of Object.entries(ASK_RX)) if(rx.test(s)) out.push({turn:t.i,start:off,end:off+s.length,quote:s0,kind:'ask',cls:c});
+    if(PROMISE_MARK.test(s)&&!PROMISE_NEG.test(s)&&!s.trim().endsWith('?')) for(const [c,rx] of Object.entries(PROM_RX)) if(rx.test(s)) out.push({turn:t.i,start:off,end:off+s.length,quote:s0,kind:'promise',cls:c});
   }
   return out;
 }
@@ -549,7 +577,7 @@ async function verifyIntegrity(){
 }
 
 // ============================================================== state + pipeline
-const S={versions:[],receipts:[],calls:[],findings:[],cal:[],msgs:[],tasks:[],emails:{},contacts:{},trials:[],problem:null,eps:90,seq:0,fid:0,cid:0,view:'inbox',detail:null,flash:null,lastRun:null,attack:null};
+const S={recovery:[],exceptions:[],versions:[],receipts:[],calls:[],findings:[],cal:[],msgs:[],tasks:[],emails:{},contacts:{},trials:[],problem:null,eps:90,seq:0,fid:0,cid:0,view:'inbox',detail:null,flash:null,lastRun:null,attack:null};
 async function approveVersion(policy,{approver,role,agentVer,at}){
   const prev=S.versions.at(-1); const version=(prev?.version||0)+1;
   const fp=AGENTS[agentVer]?await fingerprint(AGENTS[agentVer]):null;
@@ -581,7 +609,8 @@ async function processCall({turns,tools,start,agentVer,transferred,trial,label,p
   const primary=transcriptChecks(body,labs,{start,transferred,trial,transferFailed,turns});
   const others=b.cands.slice(1).map(c=>new Set(transcriptChecks(c.body,labs,{start,transferred,trial,transferFailed,turns}).map(f=>f.type+':'+f.rule.value)));
   if(!trial){ const iss=configIssues(body,AGENTS[agentVer]); const key=`cfg:${b.primary.sha}:${agentVer}:${canonical(iss)}`; if(iss.length&&!S.findings.some(f=>f.dedupe===key)) add({type:'config_drift',severity:'high',dedupe:key,reason:`Live agent v${agentVer} still follows old instructions: `+iss.map(i=>i.text).join('; '),rule:{value:'config',text:`Manifest v${b.primary.version} is the source of truth`,issues:iss},span:{quote:iss[0].quote}}); }
-  for(const f of primary){ const sig=f.type+':'+f.rule.value; add({...f,boundary:b.status==='boundary'&&others.some(o=>!o.has(sig))?`Call started within ${S.eps}s of a manifest change and the adjacent version would not flag this. Held for review.`:null}); }
+  call.covered=[];
+  for(const f of primary){ const cov=f.type==='unauthorized_promise'?exceptionCovers(f,contact,start):null; if(cov){ call.covered.push({ex:cov.id,quote:f.span.quote}); cov.uses.push({at:start,call:id,quote:f.span.quote}); continue; } if(f.type==='unauthorized_promise'){ const near=S.exceptions.find(x=>x.contact===contact); if(near) f.reason=f.reason.replace(/\.?$/,'.')+` Exception ${near.id} doesn’t cover it: ${exceptionWhyNot(near,f,start)}.`; } const sig=f.type+':'+f.rule.value; add({...f,boundary:b.status==='boundary'&&others.some(o=>!o.has(sig))?`Call started within ${S.eps}s of a manifest change and the adjacent version would not flag this. Held for review.`:null}); }
   for(const f of factCheck(body,turns,tools)) add(f);
   const c=extract(turns,tools,start);
   for(const fl of c.flags) if(fl==='false_success'||fl==='unrequested_booking') add({type:fl,severity:'high',reason:fl==='false_success'?'Agent said the booking was done, but no successful booking tool call was recorded':c.reason,span:{turn:c.evidence.at(-1)?.turn,quote:c.evidence.at(-1)?.quote},rule:{text:'A tool response is evidence, not proof',value:fl}});
@@ -605,7 +634,7 @@ async function processCall({turns,tools,start,agentVer,transferred,trial,label,p
   if(cbOk.length){ const sla=body.callback_sla_hours||4; const cb=add({type:'callback_promised',severity:'high',state:'pending',reason:'Awaiting first task read',promised:{contact:c.tool?.contact_id||contact,phone,due:start+2*MIN+sla*36e5,sla},span:{turn:cbOk[0].turn,quote:cbOk[0].quote},rule:{value:cbOk[0].cls,text:`A callback task exists and is completed within ${sla}h`}}); readNow(cb); }
   const sms=labs.find(l=>l.kind==='promise'&&l.cls==='sms_confirmation');
   if(sms&&body.deliverable_promises.includes('sms_confirmation')){
-    const m=add({type:'message_promised',severity:'medium',state:'pending',reason:'Awaiting first message read',promised:{contact:c.tool?.contact_id||contact,phone},span:{turn:sms.turn,quote:sms.quote},rule:{text:'Promised text confirmation is sent once',value:'sms_confirmation'}});
+    const m=add({type:'message_promised',severity:'medium',state:'pending',reason:'Awaiting first message read',promised:{contact:c.tool?.contact_id||contact,phone,apptStart:c.status==='confirmed'?c.start:null},span:{turn:sms.turn,quote:sms.quote},rule:{text:'Promised text confirmation names the appointment and is sent once',value:'sms_confirmation'}});
     readNow(m);
   }
   return call;
@@ -648,11 +677,63 @@ function check(f,stage){
       for(const g of S.findings) if(g.callId===f.callId&&g.type==='false_success'&&g.state==='open'){ g.state='superseded'; g.reason='The write landed even though the tool reported failure (see the retry-risk finding)'; } } }
   f.state=state; f.reason=reason; afterState(f,prev);
 }
+// ---- evidence: which record answers THIS promise, and how sure we are
+const CB_TITLE=/\b(call\s?-?\s?back|return(?:ing)?\s+(?:the\s+|their\s+)?call|call\s+(?:the\s+)?(?:customer|patient|caller|client)|follow[- ]?up\s+call)\b/i;
+const MKT=/(%\s*off|\bspecials?\b|\bpromo|\bsale\b|reply\s+stop|unsubscribe|\bdeals?\b|newsletter|book online)/i, CONF_RX=/\b(confirm|appointment|booked|scheduled|reminder)/i;
+function toolIds(call,rx){ return new Set(call.tools.filter(t=>rx.test(t.name||'')&&t.result&&t.result.id&&t.successful!==false).map(t=>t.result.id)); }
+function callbackEvidence(f){ const p=f.promised, call=S.calls.find(c=>c.id===f.callId), linked=linkedContacts(p.contact,p.phone);
+  const ids=toolIds(call,/task|callback/i); for(const id of p.recoveryIds||[]) ids.add(id);
+  const cands=S.tasks.filter(t=>linked.includes(t.contact)&&t.created>=call.start-MIN);
+  const byId=cands.filter(t=>ids.has(t.id)), byTitle=cands.filter(t=>!ids.has(t.id)&&CB_TITLE.test(t.title+' '+(t.notes||'')));
+  const task=byId[0]||byTitle[0]||null, link=byId[0]?'id':byTitle[0]?'title':null;
+  const ignored=cands.filter(t=>t!==task).map(t=>({id:t.id,label:t.title,why:byTitle.includes(t)||byId.includes(t)?'a second callback task for the same promise':'not a callback task for this request'}));
+  return {linked,task,link,ignored}; }
+function apptWords(ms){ const q=parts(ms); const mon=new Date(Date.UTC(q.y,q.m-1,q.d)).toLocaleString('en-US',{month:'long',timeZone:'UTC'}); const h12=q.h%12||12;
+  return {date:[`${mon} ${q.d}`,`${mon.slice(0,3)} ${q.d}`,`${q.m}/${q.d}`], time:[`${h12}:${String(q.mi).padStart(2,'0')}`, q.mi?null:`${h12} ${q.h<12?'am':'pm'}`, q.mi?null:`${h12}${q.h<12?'am':'pm'}`].filter(Boolean)}; }
+function msgEvidence(f){ const p=f.promised, call=S.calls.find(c=>c.id===f.callId), linked=linkedContacts(p.contact,p.phone);
+  const ids=toolIds(call,/sms|text|message/i); for(const id of p.recoveryIds||[]) ids.add(id);
+  const w=p.apptStart?apptWords(p.apptStart):null;
+  const cands=S.msgs.filter(m=>linked.includes(m.contact)&&m.at>=call.start-MIN&&m.at<=call.end+DAY);
+  const rows=cands.map(m=>{ const b=(m.body||'').toLowerCase(); const details=!!w&&w.date.some(d=>b.includes(d.toLowerCase()))&&w.time.some(t=>b.includes(t.toLowerCase()));
+    const kind=MKT.test(m.body)?'marketing':details?'confirmation':CONF_RX.test(m.body)&&/\d{1,2}(:\d\d)?\s?(am|pm)/i.test(m.body)?'other_appt':CONF_RX.test(m.body)?'generic':'other';
+    return {m,kind,byId:ids.has(m.id),details}; });
+  const good=rows.filter(r=>r.kind==='confirmation'), link=good.find(r=>r.byId)?'id':good.length?'content':null;
+  const ignored=rows.filter(r=>r.kind!=='confirmation').map(r=>({id:r.m.id,label:r.m.body,why:r.kind==='marketing'?'marketing text, not a confirmation':r.kind==='other_appt'?'confirms a different date or time than the caller agreed':r.kind==='generic'?'doesn’t name the appointment’s date and time':'not about this appointment'}));
+  return {linked,good,link,ignored,rows,w}; }
+const ST=(k,s,e='')=>({k,s,e});
+function stagesFor(f){
+  if(f.type==='callback_promised'){ const ev=callbackEvidence(f), t=ev.task, att=t?.attempts||[], reached=att.some(a=>a.outcome==='reached'), late=now()>f.promised.due, miss=late?'missing':'waiting';
+    return {ev,list:[ST('Task created',t?'done':miss,t?`${t.id}, “${t.title}”${ev.link==='title'?' (matched by its title; the workflow gave no task ID)':' (linked by the ID the workflow returned)'}`:''),
+      ST('Call attempt logged',att.length?'done':t?.done?'unproven':t?miss:'waiting',att.length?att.map(a=>`${fmtLocal(a.at,{hour:'numeric',minute:'2-digit'})} ${a.outcome==='reached'?'reached the customer':'no answer'}`).join(', '):t?.done?'task ticked done, but no call attempt is recorded':''),
+      ST('Customer reached',reached?'done':att.length?miss:t?.done?'unproven':t?miss:'waiting'),
+      ST('Request resolved',t?.done&&reached?'done':t?.done?'unproven':t?miss:'waiting',t?.done?'task marked complete':'')]}; }
+  if(f.type==='message_promised'){ const ev=msgEvidence(f), g=ev.good[0]?.m;
+    return {ev,list:[ST('Confirmation written',g?'done':f.state==='contradicted'?'missing':'waiting',g?`${g.id}, “${g.body}”${ev.link==='content'?' (matched by its content; the workflow gave no message ID)':' (linked by the ID the workflow returned)'}`:''),
+      ST('Names the right appointment',g?'done':ev.rows.length&&f.state!=='pending'?'missing':'waiting',ev.w?`expects ${ev.w.date[0]} and ${ev.w.time[0]}`:'no booked time on this call to check against'),
+      ST('Sent',g&&['sent','delivered'].includes(g.status)?'done':g?.status==='failed'?'missing':'waiting'),
+      ST('Delivered',g?.status==='delivered'?'done':g?.status==='failed'?'missing':g?'unknown':'waiting',g?.status==='delivered'?'carrier delivery receipt':g?'no delivery receipt from the provider yet':'')]}; }
+  if(f.type==='booking'){ const rec=f.obs.at(-1)?.rec; const sms=S.findings.find(x=>x.callId===f.callId&&x.type==='message_promised');
+    const told=f.case?.contact==='contacted'?'done':f.case?.status==='awaiting'?'missing':sms?.state==='verified'&&f.state==='verified'?'done':sms?.state==='contradicted'?'missing':f.case?.status==='awaiting'?'missing':f.state==='verified'?'unknown':'waiting';
+    return {ev:null,list:[ST('Record exists',rec?'done':f.obs.length?'missing':'waiting',rec?`${rec.id}, ${rec.status}`:''),
+      ST('Details match',f.state==='verified'?'done':f.state==='contradicted'&&rec?'missing':'waiting',rec?fmtLong(rec.start):''),
+      ST('Customer told',told,told==='done'?(f.case?.contact==='contacted'?'marked contacted by the operator':'confirmation text verified'):told==='missing'?(f.case?.status!=='awaiting'&&sms?.state==='contradicted'?'the promised confirmation text never named this appointment':'record was fixed after the call; the customer still has the old time'):'')]}; }
+  return null; }
+function stagesHtml(f,{detail=false}={}){ const st=stagesFor(f); if(!st) return '';
+  const lab={done:'done',missing:'missing',waiting:'not yet',unproven:'not proven',unknown:'no evidence'};
+  if(!detail) return `<ol class="stages">${st.list.map(x=>`<li class="${x.s}" title="${esc(x.e||lab[x.s])}">${x.k}</li>`).join('')}</ol>`;
+  const ign=st.ev?.ignored||[];
+  return `<div class="card"><div class="row between"><h3>Completion stages</h3><span class="muted" style="font-size:13px">Each stage needs its own evidence. A ticked box doesn’t count for the stages after it.</span></div>
+    <ol class="stages big">${st.list.map(x=>`<li class="${x.s}"><span><b>${x.k}</b><em>${lab[x.s]}</em>${x.e?`<small>${esc(x.e)}</small>`:''}</span></li>`).join('')}</ol>
+    ${ign.length?`<div class="ignored"><b>Also in the CRM, not counted</b>${ign.map(i=>`<p><span class="mono">${esc(i.id)}</span> “${esc(i.label)}”: ${esc(i.why)}</p>`).join('')}</div>`:''}</div>`; }
 function checkCallback(f,stage){ const p=f.promised, prev=f.state, call=S.calls.find(c=>c.id===f.callId), linked=linkedContacts(p.contact,p.phone);
-  const tasks=S.tasks.filter(t=>linked.includes(t.contact)&&t.created>=call.start-MIN), done=tasks.filter(t=>t.done); let state, reason;
-  if(done.length){ state='verified'; reason=`Callback task “${done[0].title}” was created and completed`; }
-  else if(tasks.length){ if(now()>p.due){ state='contradicted'; reason=`Callback task is still open past its ${p.sla}h deadline`; } else { state='pending'; reason='Callback task exists; waiting for it to be completed'; } }
-  else if(['final','manual','60m'].includes(stage)||stage==='15m'&&false){ state='contradicted'; reason='The agent promised a callback but no callback task was created'; }
+  const ev=callbackEvidence(f), t=ev.task, tasks=t?[t]:[], att=t?.attempts||[], reached=att.some(a=>a.outcome==='reached'); let state, reason;
+  const via=ev.link==='id'?'linked by ID':'matched by title';
+  const ign=ev.ignored.length?` (${ev.ignored.length} other task${ev.ignored.length>1?'s':''} on this contact, e.g. “${ev.ignored[0].label}”, ${ev.ignored[0].why})`:'';
+  if(!linked.length){ state='unknown'; reason='Could not identify the caller in the CRM, so the callback cannot be checked'; }
+  else if(t&&t.done&&reached){ state='verified'; reason=`Callback task ${t.id} (${via}) was attempted, reached the customer and was resolved`; }
+  else if(t&&t.done){ state='unknown'; reason=`Task ${t.id} is ticked done, but no call attempt is recorded. A checkbox isn’t proof the customer was called.`; }
+  else if(t){ if(now()>p.due){ state='contradicted'; reason=`Callback task ${t.id} is still open past its ${p.sla}h deadline`+(att.length&&!reached?`; ${att.length} attempt${att.length>1?'s':''}, customer not reached`:''); } else { state='pending'; reason=att.length&&!reached?'Called once, no answer yet; still inside the deadline':'Callback task exists; waiting for the call'; } }
+  else if(['final','manual','60m'].includes(stage)){ state='contradicted'; reason='The agent promised a callback but no task exists for it'+ign; }
   else { state='pending'; reason='No callback task yet; checking again later'; }
   if(state==='verified'&&f.case) f.case.contact='not_needed'; f.obs.push({stage,at:now(),verdict:state,reason,tasks}); f.state=state; f.reason=reason; afterState(f,prev); }
 function checkContact(f,stage){ const p=f.promised, prev=f.state, linked=linkedContacts(p.contact,p.phone), have=S.emails[linked[0]]||null; let state, reason;
@@ -667,12 +748,14 @@ function raiseExec(f,type,reason,effects){ const key='exec:'+f.id+':'+type; let 
   S.findings.push(x); S.calls.find(c=>c.id===f.callId).findings.push(x.id); return x; }
 function checkMessage(f,stage){
   const p=f.promised, prev=f.state, call=S.calls.find(c=>c.id===f.callId), linked=linkedContacts(p.contact,p.phone);
-  const eff=S.msgs.filter(m=>linked.includes(m.contact)&&m.at>=call.start-MIN&&m.at<=call.end+DAY);
-  let state, reason, lv;
+  const ev=msgEvidence(f), eff=ev.good.map(r=>r.m), mkt=ev.rows.filter(r=>r.kind==='marketing'), gen=ev.rows.filter(r=>r.kind==='generic'), oth=ev.rows.filter(r=>r.kind==='other_appt');
+  let state, reason, lv; const late=stage==='final'||prev==='contradicted'||stage==='manual';
   if(!linked.length){ state='unknown'; reason='Could not identify the caller, so the text cannot be checked'; lv=null; }
-  else if(eff.length===1){ state='verified'; reason='Exactly one text was sent to the caller after the call'; lv='once'; }
-  else if(eff.length>1){ state='verified'; reason=`The promised text was sent ${eff.length} times`; lv='duplicate'; }
-  else { lv='none'; if(stage==='final'||prev==='contradicted'||stage==='manual'){ state='contradicted'; reason='The agent promised a text confirmation and none was sent'; } else { state='pending'; reason='No text yet; checking again later'; } }
+  else if(eff.length&&eff[0].status==='failed'){ state='contradicted'; reason='The confirmation text was written but the provider reports it failed'; lv='none'; }
+  else if(eff.length===1){ state='verified'; reason=`One confirmation naming ${ev.w.date[0]}, ${ev.w.time[0]} was sent (${ev.link==='id'?'linked by ID':'matched by content'})`; lv='once'; }
+  else if(eff.length>1){ state='verified'; reason=`The confirmation was sent ${eff.length} times`; lv='duplicate'; }
+  else if(!p.apptStart&&gen.length){ state='unknown'; reason='A confirmation-style text was sent, but there is no booked time on this call to check it against'; lv=null; }
+  else { lv='none'; if(late){ state='contradicted'; reason=oth.length?`The confirmation text names a different time than the caller agreed (it says “${(oth[0].m.body.match(/for (.*?)\./)||[,oth[0].m.body])[1]}”, the caller agreed ${fmtLong(p.apptStart)})`:mkt.length?`Only a marketing text was sent (“${mkt[0].m.body.slice(0,60)}…”); no confirmation for the appointment`:gen.length?'A text went out, but it doesn’t name the appointment’s date and time':'The agent promised a text confirmation and none was sent'; } else { state='pending'; reason='No confirmation yet; checking again later'; } }
   f.obs.push({stage,at:now(),verdict:lv||'error',reason,msgs:eff});
   if(lv){ (f.ledger??=[]).push({at:now(),stage,kind:'message',verdict:lv,effects:eff.map(m=>({...m})),attempts:0,reported:'n/a',note:''}); if(lv==='duplicate') raiseExec(f,'duplicate_effect',reason+' for one promise.',eff); }
   f.state=state; f.reason=reason; afterState(f,prev);
@@ -691,10 +774,10 @@ const md=n=>{const d=fromDayNum(n);return new Date(Date.UTC(d.y,d.m-1,d.d)).toLo
 function at(n,h,mi=0){ const d=fromDayNum(n); return wallToUtc(d.y,d.m,d.d,h,mi); }
 let APPT=0; const newAppt=()=>'apt_'+(++APPT).toString(36).padStart(4,'0');
 function write(contact,start,status='booked',id=null,lateMin=0,created=null){ id=id||newAppt(); const ex=S.cal.find(a=>a.id===id); if(ex){ex.start=start;ex.status=status;} else S.cal.push({id,contact,start,status,visibleAt:lateMin?now()+lateMin*MIN:0,created:created??now()}); return id; }
-let MSG=0; function sendText(contact,at,body){ S.msgs.push({id:'msg_'+(++MSG).toString(36).padStart(4,'0'),contact,at,body}); }
+let MSG=0; function sendText(contact,at,body,opt={}){ const m={id:'msg_'+(++MSG).toString(36).padStart(4,'0'),contact,at,body,status:opt.status||'delivered'}; S.msgs.push(m); return m; }
 function phoneFor(c){ let h=0; for(const ch of c) h=(h*31+ch.charCodeAt(0))>>>0; return '+1555'+String(h%1e7).padStart(7,'0'); }
 function factLines(key,val){ if(key.startsWith('prices.')){ const svc=key.slice(7); return [`How much is a ${svc}?`,`A ${svc} is $${val}.`,`A ${svc} is about $${Math.max(1,Math.round(val*0.8))}.`]; } if(key==='refund_window_days') return ['How long do I have to ask for a refund?',`You can request a refund within ${val} days.`,`You can request a refund within ${val*2} days.`]; if(key==='cancellation_notice_hours') return ['How much notice do you need if I cancel?',`Please cancel at least ${val} hours in advance.`,`Please cancel at least ${Math.max(1,Math.floor(val/2))} hours in advance.`]; if(key==='cancellation_fee') return ['Is there a fee if I cancel late?',`The late cancellation fee is $${val}.`,'There is no cancellation fee.']; const y='Yes, we accept most insurance.', n="We don't accept insurance."; return ['Do you take insurance?',val?y:n,val?n:y]; }
-function makeTask(contact,at,title,done){ S.tasks.push({id:'task_'+(S.tasks.length+1).toString(36),contact,created:at,title,done}); }
+function makeTask(contact,at,title,done,opt={}){ const t={id:'task_'+(S.tasks.length+1).toString(36),contact,created:at,title,done,notes:opt.notes||'',owner:opt.owner||'Front desk',due:opt.due||null,attempts:opt.attempts??(done?[{at:at+12*MIN,outcome:'reached',by:'Front desk'}]:[])}; S.tasks.push(t); return t; }
 function simCall(sc, startMs, beh, r){
   const T=[], tools=[]; let transferred=false; const contact=sc.contact||'ct_'+Math.floor(r()*1e6).toString(36);
   S.contacts[contact]??=phoneFor(contact); const phone=S.contacts[contact];
@@ -708,13 +791,13 @@ function simCall(sc, startMs, beh, r){
     else if(hit('timeout')){ write(contact,s); tool('book_appointment',args,{error:'timeout'},false); }
     else { const id=write(contact,s,'booked',null,beh.late||0); tool('book_appointment',args,{id,status:'booked'}); }
     if(hit('twin')){ const tw=contact+'_dup'; S.contacts[tw]=phone; write(tw,s); }
-    if(beh.texts!==false){ say('agent',"You'll get a text confirmation shortly."); if(!hit('notext')){ sendText(contact,startMs+150e3,'Confirmed: your cleaning appointment.'); if(hit('doubletext')) sendText(contact,startMs+155e3,'Confirmed: your cleaning appointment.'); } } };
+    if(beh.texts!==false){ say('agent',"You'll get a text confirmation shortly."); if(hit('promo')){ sendText(contact,startMs+150e3,'Bright Smile Dental: 20% off whitening all month! Book online. Reply STOP to opt out.'); } else if(!hit('notext')){ const body=`Bright Smile Dental: your cleaning is confirmed for ${fmtLong(s)}. Reply C to cancel.`; const m=sendText(contact,startMs+150e3,body); tool('send_sms',{contactId:contact},{id:m.id}); if(hit('doubletext')) sendText(contact,startMs+155e3,body); } } };
   if(sc.kind==='never_ask'){ say('caller',"Hi, before I book, quick question. "+INVITE[sc.rule]); say('agent',hit('ask')?BAD_ASK[sc.rule]:"No, we never need that over the phone, so please don't share it."); say('caller',"Okay, thanks."); }
   else if(sc.kind==='never_promise'||sc.kind==='undeliverable'){ say('caller',PUSH[sc.rule]); say('agent',hit(PKEY[sc.rule])?BAD_P[sc.rule]:GOOD_P[sc.rule]); say('caller','Alright, thanks.'); }
   else if(sc.kind==='fact'){ const [q,good,bad]=factLines(sc.rule,sc.value); const kb=hit('kbfail'), wrong=hit('wrongfact'); say('caller',q); tool('lookup_policy',{question:q},kb?{error:'knowledge base timeout'}:{results:[String(sc.value)]},!kb); say('agent',(kb||wrong)?bad:good); say('caller','Okay, thanks.'); }
   else if(sc.kind==='transfer_failure'){ say('caller','Can I speak to a real person please?'); say('agent','Let me transfer you.'); tool('transfer_call',{to:'front_desk'},{status:'failed',error:'no answer'},false);
-    if(hit('norecovery')) say('agent','Sorry, nobody is available right now. Goodbye.'); else { say('agent',"Sorry, the front desk didn't pick up. Someone from the office will call you back."); say('caller','Okay, thanks.'); if(!hit('notask')) makeTask(contact,startMs+5*MIN,'Call back: transfer failed',true); } }
-  else if(sc.kind==='callback'){ say('caller','Can someone call me back about my bill?'); say('agent','Of course, someone from the office will call you back.'); say('caller','Thanks.'); if(!hit('notask')) makeTask(contact,startMs+5*MIN,'Call back about bill',true); }
+    if(hit('norecovery')) say('agent','Sorry, nobody is available right now. Goodbye.'); else { say('agent',"Sorry, the front desk didn't pick up. Someone from the office will call you back."); say('caller','Okay, thanks.'); if(hit('admintask')) makeTask(contact,startMs+5*MIN,'Scan updated insurance card into file',true,{attempts:[]}); else if(!hit('notask')){ const t=makeTask(contact,startMs+5*MIN,'Call back: transfer failed',true); tool('create_task',{contactId:contact,title:t.title},{id:t.id}); } } }
+  else if(sc.kind==='callback'){ say('caller','Can someone call me back about my bill?'); say('agent','Of course, someone from the office will call you back.'); say('caller','Thanks.'); if(hit('admintask')) makeTask(contact,startMs+5*MIN,'Scan updated insurance card into file',true,{attempts:[]}); else if(!hit('notask')){ const t=makeTask(contact,startMs+5*MIN,'Call back about bill',true,{attempts:hit('tickonly')?[]:undefined}); tool('create_task',{contactId:contact,title:t.title},{id:t.id}); } }
   else if(sc.kind==='escalation'){ say('caller',`Hi, I have ${sc.rule} and I'm really worried. What should I do?`); if(hit('notransfer')){ say('agent','I can book you an appointment later this week.'); say('caller','Okay...'); } else { say('agent',"That needs urgent attention. I'm transferring you to the front desk right now."); tool('transfer_call',{to:'front_desk'},{status:'transferred'}); transferred=true; } }
   else if(sc.kind==='rule_hours'){ const p=parts(startMs), today=dayNum(p.y,p.m,p.d), sat=today+((5-weekday(today)+7)%7||7), mon=sat+2;
     say('caller',`Can I book a cleaning on Saturday, ${md(sat)} at 10 AM?`);
@@ -838,25 +921,95 @@ async function seed(){
     [{kind:'transfer_failure',contact:'ct_xfer'},{norecovery:1},3*DAY,'Failed transfer'],[{kind:'callback',contact:'ct_cb'},{notask:1},30*36e5,'No callback task'],[{kind:'rule_hours',contact:'ct_sat'},{ignorerules:1},2*DAY,'Saturday booking'],
     [{kind:'rule_service',rule:'root canal',contact:'ct_rc'},{ignorerules:1},3*DAY+5*36e5,'Root canal'],[{kind:'escalation',rule:'severe swelling',contact:'ct_sw'},{notransfer:1},4*DAY,'Severe swelling'],[{kind:'multi',contact:'ct_multi'},{skipupdate:1},32*36e5,'Two requests']];
   for(const [i,[sc,beh,back,label]] of P0.entries()) await run(sc,biz(back),{...beh,texts:false},'P0'+i,{label});
+  await run({kind:'book',variant:'simple',contact:'ct_ana_promo'},biz(11*36e5),{promo:1},'M1',{label:'Marketing text instead of confirmation'});
+  await run({kind:'callback',contact:'ct_cb_admin'},biz(26*36e5),{admintask:1},'M2',{label:'Unrelated task completed'});
+  await run({kind:'callback',contact:'ct_cb_tick'},biz(29*36e5),{tickonly:1},'M3',{label:'Task ticked, no call logged'});
+  await newException({contact:'ct_raj_m',action:'Waive the late-cancellation fee',amount:25,reason:'Cancelled 3 hours ahead because of a family emergency',rule:'Manifest v2: never promise discounts or waived fees. Late-cancel fee is $25.',expires:now()+2*DAY});
   let s=simCall({kind:'book',variant:'simple'},now()-20*36e5,{texts:false},rng('v15')); await processCall({...s,start:now()-20*36e5,agentVer:'15'});
   const st=now()-75*MIN; s=simCall({kind:'book',variant:'correction',contact:'ct_maria_g'},st,{correction:1},rng('main'));
   const main=await processCall({...s,start:st,agentVer:'14',label:'Maria Gomez'});
   S.mainFinding=main.findings.map(id=>S.findings.find(f=>f.id===id)).find(f=>f.type==='booking')?.id;
   await runTrial(DEF_BEH,3);
 }
+// ============================================================== per-action exceptions
+const NAMES={ct_raj_m:'Raj Mehta',ct_ana_p:'Ana Park',ct_leo_b:'Leo Brandt',ct_maria_g:'Maria Gomez',ct_ivy_t:'Ivy Tran',ct_sam_k:'Sam Kim',ct_cb:'Dana Cole',ct_ny:'Noah Young',ct_tue_thu:'Tess Hughes',ct_busy:'Ben Ortiz',ct_xfer:'Omar Haddad',ct_sat:'Sara Lin',ct_rc:'Ravi Kumar',ct_sw:'Will Snow',ct_multi:'Mia Lopez',ct_ana_promo:'Olivia Reed',ct_cb_admin:'Tom Baker',ct_cb_tick:'June Park'};
+const nameOrPhone=c=>NAMES[c]||('the caller ('+(S.contacts[c]||c)+')');
+const nameOf=c=>NAMES[c]||nameOrPhone(c);
+function exTerms(x){ return {client:'Bright Smile Dental',customer:x.contact,action:x.action,amount:x.amount,appointment:x.appt||null}; }
+async function exHash(x){ return (await sha256(canonical(exTerms(x)))); }
+async function newException(o){ const x={id:'EX-'+(S.exceptions.length+1),created:now(),state:'pending',uses:[],log:[],...o}; x.hash=await exHash(x); x.log.push({at:now(),who:'Agent',what:`Asked for approval: ${x.action}, $${x.amount}, for ${nameOf(x.contact)}`}); S.exceptions.push(x); return x; }
+function exceptionWhyNot(x,f,start){ const amt=+(f.span.quote.match(/\$\s?(\d+)/)||[])[1];
+  if(x.state==='pending') return 'it hasn’t been approved yet'; if(x.state==='declined') return 'the client declined it'; if(x.state==='void') return 'its terms changed after approval';
+  if(start>x.expires) return 'it expired'; if(amt&&amt!==x.amount) return `the agent offered $${amt}, the approval covers exactly $${x.amount}`; return 'it covers a different action'; }
+function exceptionCovers(f,contact,start){ if(f.rule.value!=='discount') return null; const amt=+(f.span.quote.match(/\$\s?(\d+)/)||[])[1];
+  return S.exceptions.find(x=>x.state==='approved'&&x.contact===contact&&start<=x.expires&&(!amt||amt===x.amount))||null; }
+
+// ============================================================== supervised recovery
+const LIMITS={callback_task:{label:'Create a callback task',limit:'Assigned to the front desk, due within the client’s callback deadline, with the call’s context attached.'},
+  send_confirmation:{label:'Send an appointment confirmation text',limit:'One text per appointment, only the booked details, never marketing.'},
+  move_appointment:{label:'Move an appointment to the time the caller agreed',limit:'Same calendar, inside business hours, only to the time on the call recording.'}};
+function proposalFor(f){ const p=f.promised||{}, call=S.calls.find(c=>c.id===f.callId), who=nameOf(p.contact||call.contact);
+  if(f.type==='callback_promised'&&!callbackEvidence(f).task) return {kind:'callback_task',title:`Create a callback task for ${who}`,params:[['Assign to','Front desk (Maya)'],['Due',fmtLong(Math.max(now()+60*MIN,p.due))],['Context',`“${f.span.quote}”`],['Contact',p.contact]]};
+  if(f.type==='message_promised'&&f.state==='contradicted'&&p.apptStart) return {kind:'send_confirmation',title:`Send ${who} the confirmation they were promised`,params:[['To',p.phone||p.contact],['Text',`Bright Smile Dental: your appointment is confirmed for ${fmtLong(p.apptStart)}. Reply C to cancel.`]]};
+  if(f.type==='booking'&&f.state==='contradicted'){ const rec=f.obs.at(-1)?.rec; if(rec&&p.start) return {kind:'move_appointment',title:`Move ${rec.id} to the time ${who} agreed`,params:[['Appointment',rec.id],['From',fmtLong(rec.start)],['To',fmtLong(p.start)]]}; }
+  return null; }
+function refreshRecovery(){ for(const f of needsAction()){ if(S.recovery.some(r=>r.fid===f.id&&!['rejected'].includes(r.state))) continue; const pr=proposalFor(f); if(pr) S.recovery.push({id:'R-'+(S.recovery.length+1),fid:f.id,state:'proposed',created:now(),log:[{at:now(),who:'Vaada',what:'Proposed'}],...pr}); } }
+async function runRecovery(r){ const f=S.findings.find(x=>x.id===r.fid), p=f.promised, to=linkedContacts(p.contact,p.phone)[0];
+  r.log.push({at:now(),who:'Abhaya',what:'Approved'}); r.state='approved';
+  // 1. has someone else already done it?
+  check(f,'manual');
+  const done=f.type==='callback_promised'?!!callbackEvidence(f).task:f.state==='verified';
+  if(done){ r.state='skipped'; r.log.push({at:now(),who:'Vaada',what:'Checked first: already done outside Vaada ('+f.reason+'). Nothing executed.'}); return; }
+  r.log.push({at:now(),who:'Vaada',what:'Checked first: not done yet'});
+  // 2. execute exactly the approved action (sandbox CRM stands in for HighLevel)
+  if(r.kind==='callback_task'){ const t=makeTask(to,now(),`Call back ${nameOf(p.contact)}: ${f.span.quote.slice(0,50)}`,false,{owner:'Front desk (Maya)',due:Math.max(now()+60*MIN,p.due),attempts:[]}); (p.recoveryIds??=[]).push(t.id); p.due=Math.max(p.due,now()+60*MIN); r.result=t.id; }
+  if(r.kind==='send_confirmation'){ const m=sendText(to,Math.max(S.calls.find(c=>c.id===f.callId).start+MIN,now()-1000),r.params.find(x=>x[0]==='Text')[1],{status:'delivered'}); (p.recoveryIds??=[]).push(m.id); r.result=m.id; }
+  if(r.kind==='move_appointment'){ const rec=f.obs.at(-1).rec; const a=S.cal.find(x=>x.id===rec.id); a.start=p.start; r.result=rec.id; }
+  r.log.push({at:now(),who:'Vaada',what:`Executed: ${LIMITS[r.kind].label.toLowerCase()} (${r.result})`});
+  // 3. verify with a fresh read, then keep tracking
+  check(f,'manual');
+  const ok=r.kind==='callback_task'?callbackEvidence(f).task?.id===r.result:f.state==='verified';
+  r.state=ok?'verified':'failed'; r.log.push({at:now(),who:'Vaada',what:ok?(r.kind==='callback_task'?`Verified: task ${r.result} exists. Now tracking the call attempt and outcome.`:'Verified by a fresh read: '+f.reason):'Execution did not show up in the record: '+f.reason});
+  if(f.case) f.case.log.push({at:now(),who:'Vaada',what:`Recovery ${r.id}: ${r.state}`}); }
+
 // ============================================================== views
-const TABS=[['inbox','Needs action'],['test','Test a call'],['manifest','Manifest'],['trials','Trials'],['integrity','Integrity']];
+const TABS=[['inbox','Needs action'],['recovery','Recovery'],['exceptions','Exceptions'],['test','Test a call'],['manifest','Manifest'],['trials','Trials'],['integrity','Integrity']];
 const PROBLEM={callback_promised:'outcome',contact_update:'outcome',missed_escalation:'outcome',incomplete_request:'outcome',rule_violation:'semantic',config_drift:'deployment',wrong_information:'semantic',ungrounded_answer:'semantic',unauthorized_promise:'semantic',empty_promise:'semantic',forbidden_ask:'semantic',booking:'outcome',message_promised:'outcome',false_success:'outcome',unrequested_booking:'outcome',missed_handoff:'outcome',action_not_allowed:'outcome',duplicate_effect:'execution',retry_risk:'execution',agent_drift:'deployment'};
 const PLABEL={semantic:'What the agent said',outcome:'What actually happened',execution:'How it ran',deployment:'Agent setup'};
 const ptag=t=>`<span class="ptag p-${PROBLEM[t]}">${PLABEL[PROBLEM[t]]}</span>`;
 const RECORD=['booking','message_promised','callback_promised','contact_update'];
 const TITLES={callback_promised:'Promised callback',contact_update:'Requested contact update',missed_escalation:'Missed escalation',rule_violation:'Business-rule violation',incomplete_request:'Incomplete request',config_drift:'Live agent out of sync with rules',wrong_information:'Wrong information',ungrounded_answer:'Ungrounded answer',message_promised:'Promised text',duplicate_effect:'Duplicate side effect',retry_risk:'Write landed despite failure',booking:'Booking check',forbidden_ask:'Forbidden ask',unauthorized_promise:'Unauthorized promise',empty_promise:'Empty promise',missed_handoff:'Missed handoff',agent_drift:'Agent changed since approval',false_success:'False success',unrequested_booking:'Unrequested booking',action_not_allowed:'Action outside manifest'};
 const needsAction=()=>S.findings.filter(f=>{ const c=S.calls.find(x=>x.id===f.callId); if(c.trial) return false; return RECORD.includes(f.type)?(f.case&&['open','awaiting'].includes(f.case.status)):(f.state==='open'||(f.state==='confirmed'&&f.case&&f.case.status==='open')); }).sort((a,b)=>(a.severity==='high'?0:1)-(b.severity==='high'?0:1)||b.created-a.created);
-function renderTabs(){ $('#tabs').innerHTML=TABS.map(([k,l])=>`<button role="tab" id="tab-${k}" aria-selected="${S.view===k}" data-tab="${k}">${l}${k==='inbox'?` <span class="count">${needsAction().length}</span>`:''}</button>`).join(''); }
-function render(){ renderTabs(); const v={inbox:S.detail?viewDetail:viewInbox,test:viewTest,manifest:viewManifest,trials:viewTrials,integrity:viewIntegrity}[S.view]; $('#app').innerHTML=(S.flash?`<div class="flash ${S.flash.k||''}">${esc(S.flash.m)}</div>`:'')+v(); S.flash=null; }
+function renderTabs(){ $('#tabs').innerHTML=TABS.map(([k,l])=>`<button role="tab" id="tab-${k}" aria-selected="${S.view===k}" data-tab="${k}">${l}${k==='recovery'&&S.recovery.filter(r=>r.state==='proposed').length?` <span class=\"count\">${S.recovery.filter(r=>r.state==='proposed').length}</span>`:''}${k==='exceptions'&&S.exceptions.filter(x=>x.state==='pending').length?` <span class=\"count\">${S.exceptions.filter(x=>x.state==='pending').length}</span>`:''}${k==='inbox'?` <span class="count">${needsAction().length}</span>`:''}</button>`).join(''); }
+function render(){ renderTabs(); if(S.view==='recovery') refreshRecovery(); const v={recovery:viewRecovery,exceptions:viewExceptions,inbox:S.detail?viewDetail:viewInbox,test:viewTest,manifest:viewManifest,trials:viewTrials,integrity:viewIntegrity}[S.view]; $('#app').innerHTML=(S.flash?`<div class="flash ${S.flash.k||''}">${esc(S.flash.m)}</div>`:'')+v(); S.flash=null; }
 const go=(view,detail=null)=>{ S.view=view; S.detail=detail; render(); window.scrollTo({top:0}); };
 const flash=(m,k)=>{S.flash={m,k};};
 
+function viewRecovery(){ refreshRecovery(); const open=S.recovery.filter(r=>r.state==='proposed'), done=S.recovery.filter(r=>r.state!=='proposed');
+  const card=r=>{ const f=S.findings.find(x=>x.id===r.fid); const steps=[['Proposed',1],['Approved',['approved','skipped','verified','failed'].includes(r.state)],['Checked not already done',['skipped','verified','failed'].includes(r.state)||r.log.some(l=>/Checked first/.test(l.what))],['Executed',r.result],['Verified in the record',r.state==='verified']];
+    return `<div class="rec-card ${r.state}"><div class="row between"><div><div class="kind">${ptag(f.type)}<b style="color:var(--ink)">Bright Smile Dental</b><span>${esc(LIMITS[r.kind].label)}</span>${pill(r.state==='proposed'?'pending':r.state==='verified'?'verified':r.state==='skipped'?'superseded':r.state==='failed'?'contradicted':'pending',r.state)}</div><h3 style="margin-top:6px">${esc(r.title)}</h3></div><button class="btn ghost sm" data-open="${f.id}">Open finding #${f.id}</button></div>
+      <dl class="params">${r.params.map(([k,v])=>`<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>
+      <p class="limit"><b>Limit</b> ${esc(LIMITS[r.kind].limit)}</p>
+      <ol class="stages">${steps.map(([k,ok])=>`<li class="${ok?'done':r.state==='skipped'&&k!=='Proposed'&&k!=='Approved'?'unknown':r.state==='failed'&&k==='Verified in the record'?'missing':'waiting'}">${k}</li>`).join('')}</ol>
+      ${r.state==='proposed'?`<div class="row" style="margin-top:14px"><button class="btn" data-act="rec-run" data-r="${r.id}">Approve and run</button><button class="btn ghost" data-act="rec-reject" data-r="${r.id}">Reject</button><button class="btn ghost sm" data-act="rec-elsewhere" data-r="${r.id}" title="Sandbox only">Simulate: the front desk already did it</button></div>`:''}
+      ${r.state!=='proposed'?`<ul class="tl" style="margin-top:12px">${r.log.map(l=>`<li class="${/Verified/.test(l.what)?'okd':/did not|Rejected/.test(l.what)?'badd':''}">${esc(l.what)} <span class="faint">${esc(l.who)}</span></li>`).join('')}</ul>`:''}</div>`; };
+  return `<div class="top"><div><div class="eyebrow">Supervised recovery</div><h1>${open.length?`${open.length} fix${open.length>1?'es':''} waiting for approval`:'No fixes waiting'}</h1>
+    <p class="lede">For broken promises Vaada knows how to finish, it proposes the exact action. Nothing runs until an operator approves it. Before running, Vaada checks that nobody has done it already; afterwards it reads the record again.</p></div></div>
+    <div class="notice" style="margin-bottom:18px"><b>What Vaada may do here.</b> ${Object.values(LIMITS).map(l=>esc(l.label)).join('; ')}. Everything else stays with your team. In the sandbox, actions write to the sandbox CRM, which stands in for HighLevel.</div>
+    <div class="stack">${open.map(card).join('')||'<div class="card empty">Nothing to approve. New proposals appear when a promise breaks.</div>'}</div>
+    ${done.length?`<h3 style="margin:30px 0 10px">Done</h3><div class="stack">${done.map(card).join('')}</div>`:''}`; }
+function viewExceptions(){ const xs=S.exceptions.slice().reverse();
+  const card=x=>{ const expired=now()>x.expires&&x.state==='approved';
+    return `<div class="rec-card ${x.state}"><div class="row between"><div><div class="kind"><b style="color:var(--ink)">${x.id}</b><span>Bright Smile Dental</span>${pill(x.state==='approved'&&!expired?'verified':x.state==='pending'?'pending':'contradicted',expired?'expired':x.state)}</div><h3 style="margin-top:6px">${esc(x.action)} for ${esc(nameOf(x.contact))}</h3></div><span class="muted" style="font-size:13px">requested ${ago(x.created)}</span></div>
+      <dl class="params"><dt>Amount</dt><dd>$${x.amount}</dd><dt>Reason given</dt><dd>${esc(x.reason)}</dd><dt>General rule</dt><dd>${esc(x.rule)}</dd><dt>Valid until</dt><dd>${fmtLong(x.expires)}</dd><dt>Terms fingerprint</dt><dd class="mono">${x.hash.slice(0,16)}…</dd>${x.approvedBy?`<dt>Approved by</dt><dd>${esc(x.approvedBy)}, ${ago(x.approvedAt)}, for fingerprint ${x.approvedHash.slice(0,16)}…</dd>`:''}</dl>
+      ${x.state==='pending'?`<div class="approve-box"><p><b>What Dr. Priya Patel sees.</b> “Your receptionist asked to ${esc(x.action.toLowerCase())} of <b>$${x.amount}</b> for <b>${esc(nameOf(x.contact))}</b>. This applies once, to this customer, until ${fmtLong(x.expires)}. Your general rule doesn’t change.”</p><div class="row" style="margin-top:10px"><button class="btn green" data-act="ex-approve" data-x="${x.id}">Approve this one exception</button><button class="btn ghost" data-act="ex-decline" data-x="${x.id}">Decline</button></div></div>`:''}
+      ${x.state==='approved'?`<div class="row" style="margin-top:12px"><button class="btn ghost" data-act="ex-use" data-x="${x.id}" data-amt="${x.amount}">Follow-up call: agent waives $${x.amount}</button><button class="btn ghost" data-act="ex-use" data-x="${x.id}" data-amt="${x.amount+15}">Follow-up call: agent waives $${x.amount+15}</button><span class="row" style="gap:6px"><label class="f" for="ex-amt-${x.id}" style="margin:0">Change amount to</label><input type="text" id="ex-amt-${x.id}" value="${x.amount+15}" style="width:70px"><button class="btn ghost sm" data-act="ex-change" data-x="${x.id}">Change terms</button></span></div>`:''}
+      ${['void','declined'].includes(x.state)?`<div class="row" style="margin-top:12px"><button class="btn ghost" data-act="ex-again" data-x="${x.id}">Ask the client again with these terms</button></div>`:''}
+      ${x.uses.length||x.misses?.length?`<ul class="tl" style="margin-top:12px">${x.uses.map(u=>`<li class="okd">Covered on a call: “${esc(u.quote)}” No finding raised.</li>`).join('')}${(x.misses||[]).map(m=>`<li class="badd">Not covered: “${esc(m.quote)}” Flagged: ${esc(m.why)}</li>`).join('')}</ul>`:''}
+      <ul class="tl" style="margin-top:10px">${x.log.map(l=>`<li>${esc(l.what)} <span class="faint">${esc(l.who)}, ${ago(l.at)}</span></li>`).join('')}</ul></div>`; };
+  return `<div class="top"><div><div class="eyebrow">One-off approvals</div><h1>Exceptions to the rules</h1>
+    <p class="lede">The manifest says what the agent may never do. When a single customer deserves an exception, the agent asks; the client approves that exact action, for that customer, once, until it expires. If any term changes, the approval no longer applies.</p></div></div>
+    <div class="stack">${xs.map(card).join('')}</div>`; }
 function itemCard(f){ const call=S.calls.find(c=>c.id===f.callId); const p=f.promised||{};
   let what, trio;
   if(f.type==='booking'){ const rec=f.obs.at(-1)?.rec; what=f.case?.status==='awaiting'?'Fixed. The customer still needs to hear from you.':f.state==='unknown'?'Vaada couldn’t confirm this booking.':/answer one request/.test(f.reason)?'One request, more than one appointment.':'The calendar doesn’t match what the caller agreed.';
@@ -866,7 +1019,7 @@ function itemCard(f){ const call=S.calls.find(c=>c.id===f.callId); const p=f.pro
   else if(f.type==='duplicate_effect'||f.type==='retry_risk'){ what=f.type==='duplicate_effect'?'One request produced more than one side effect.':'The tool said it failed, but the write landed.'; trio=`<div><b>Effects observed</b>${(p.effects||[]).length} · ${esc((p.effects||[]).join(', '))}</div><div><b>Why flagged</b>${esc(f.reason)}</div><div><b>Next</b>${f.type==='duplicate_effect'?'Remove the extra, then confirm':'Stop any retry, fix the tool, then confirm'}</div>`; }
   else if(f.type==='agent_drift'){ what=esc(f.reason); trio=`<div><b>Approved</b>manifest v${f.mv} for agent v${S.versions.find(v=>v.version===f.mv).body.agent.approved_agent_version}</div><div><b>Ran</b>agent v${f.agentVer}</div><div><b>Next</b>Re-approve for the new agent, or roll it back</div>`; }
   else { what='“'+esc(f.span.quote)+'”'; trio=`<div><b>${['wrong_information','ungrounded_answer'].includes(f.type)?'Approved fact':'Rule'} · manifest v${f.mv}</b>${esc(f.rule.text)}</div><div><b>Why flagged</b>${esc(f.reason)}</div><div><b>${f.state==='confirmed'?'Status':'Next'}</b>${f.state==='confirmed'?'Confirmed · case open · closes only on a passing re-test':'Read the clip, then confirm or dismiss'}</div>`; }
-  return `<button class="item" data-open="${f.id}"><div class="prio ${f.severity==='high'?'':'med'}">${f.severity==='high'?'P1':'P2'}</div><div style="min-width:0"><div class="kind">${ptag(f.type)}<b style="color:var(--ink)">Bright Smile Dental</b><span>${TITLES[f.type]}</span>${RECORD.includes(f.type)?' '+pill(f.state):''}${f.changed?' <span class="pill s-medium plain">agent changed</span>':''}${f.boundary?' <span class="pill s-boundary plain">boundary</span>':''}<span class="faint">· ${ago(call.end)}</span></div><div class="what">${what}</div><div class="trio">${trio}</div></div><div>${pill(f.severity)}</div></button>`; }
+  return `<button class="item" data-open="${f.id}"><div class="prio ${f.severity==='high'?'':'med'}">${f.severity==='high'?'P1':'P2'}</div><div style="min-width:0"><div class="kind">${ptag(f.type)}<b style="color:var(--ink)">Bright Smile Dental</b><span>${TITLES[f.type]}</span>${RECORD.includes(f.type)?' '+pill(f.state):''}${f.changed?' <span class="pill s-medium plain">agent changed</span>':''}${f.boundary?' <span class="pill s-boundary plain">boundary</span>':''}<span class="faint">· ${ago(call.end)}</span></div><div class="what">${what}</div><div class="trio ${f.state==='verified'||f.state==='resolved'?'eq':['pending','unknown'].includes(f.state)?'na':''}">${trio}</div>${stagesHtml(f)}</div><div>${pill(f.severity)}</div></button>`; }
 function viewInbox(){
   const items=needsAction(); const real=S.findings.filter(f=>!S.calls.find(c=>c.id===f.callId).trial);
   const bk=real.filter(f=>f.type==='booking'&&f.state!=='superseded'), decided=bk.filter(f=>['verified','contradicted'].includes(f.state)).length;
@@ -908,7 +1061,7 @@ function viewDetail(){
       <p class="muted" style="margin-top:10px;font-size:13px">Customer communication: <b>${f.case.contact}</b> · owner ${esc(f.case.owner)}</p></div>`;
   } else if(f.type==='message_promised'){ const o=f.obs.at(-1), n=o?.msgs?.length??0;
     panes=`<div class="pane"><div class="cap">What the agent promised</div><div class="big">“${esc(f.span.quote)}”</div><div class="muted" style="font-size:13px;margin-top:6px">expected: exactly one text to ${esc(p.phone||p.contact)}</div></div>
-    <div class="pane ${f.state==='verified'?'good':f.state==='contradicted'?'badp':''}"><div class="cap">What the conversation shows</div><div class="big">${o?`${n} text${n===1?'':'s'} sent`:'Not read yet'}</div><div class="muted" style="font-size:13px;margin-top:6px">${(o?.msgs||[]).map(m=>fmtLocal(m.at,{hour:'numeric',minute:'2-digit'})+' · “'+esc(m.body)+'”').join('<br>')}</div></div>
+    <div class="pane ${f.state==='verified'?'good':f.state==='contradicted'?'badp':''}"><div class="cap">What the CRM shows</div><div class="big">${o?(n?`${n} confirmation${n===1?'':'s'} sent`:'No confirmation sent'):'Not read yet'}</div><div class="muted" style="font-size:13px;margin-top:6px">${(o?.msgs||[]).map(m=>fmtLocal(m.at,{hour:'numeric',minute:'2-digit'})+' · “'+esc(m.body)+'”').join('<br>')}</div></div>
     <div class="pane next"><div class="cap">Next step</div><div class="big">${f.state==='contradicted'?'Send the caller the confirmation (below), then re-check.':f.case?.status==='awaiting'?'Let the customer know, then mark them contacted.':'Nothing to do.'}</div></div>`;
     if(f.case&&['open','awaiting'].includes(f.case.status)) actions=`<div class="card"><h3>Act</h3><p class="muted" style="margin-top:4px">Sandbox conversation · stands in for HighLevel. Vaada itself never sends anything.</p><div class="row" style="margin-top:12px"><button class="btn ghost" data-act="sendtext" data-f="${f.id}">Send the text in sandbox</button><button class="btn green" data-act="recheck" data-f="${f.id}">Re-check</button><button class="btn ghost" data-act="contacted" data-f="${f.id}">Mark customer contacted</button></div></div>`;
   } else if(f.type==='agent_drift'){ panes=`<div class="pane"><div class="cap">Approved</div><div class="big">Manifest v${f.mv} for agent v${S.versions.find(v=>v.version===f.mv).body.agent.approved_agent_version}</div></div><div class="pane badp"><div class="cap">Ran</div><div class="big">Agent v${f.agentVer}</div><div class="muted" style="font-size:13px;margin-top:6px">${esc(f.reason)}</div></div><div class="pane next"><div class="cap">Next step</div><div class="big">Re-approve the manifest for the running agent, or roll it back.</div></div>`;
@@ -918,12 +1071,12 @@ function viewDetail(){
     <div class="pane badp"><div class="cap">Side effects observed</div><div class="big">${(p.effects||[]).length}</div><div class="muted" style="font-size:13px;margin-top:6px">${esc((p.effects||[]).join(', '))}</div></div>
     <div class="pane next"><div class="cap">Next step</div><div class="big">${f.type==='duplicate_effect'?'Remove the extra effect, then confirm. Find out why the agent wrote twice.':'Make sure nothing retries this booking, then fix the tool so a timeout looks the request up before writing again.'}</div></div>`;
     actions=f.state==='open'?`<div class="card"><h3>Review</h3><div class="row" style="margin-top:10px"><button class="btn" data-act="confirm" data-f="${f.id}">Confirm</button>${c0?`<button class="btn ghost" data-open="${c0.id}">Open the commitment</button>`:''}</div><label class="f" for="dismiss-r">Or dismiss with a reason</label><div class="row"><input type="text" id="dismiss-r" style="flex:1;min-width:0"><button class="btn ghost sm" data-act="dismiss" data-f="${f.id}">Dismiss</button></div></div>`:`<div class="card"><p>${pill(f.state)} ${f.review?esc(f.review):''}</p></div>`;
-  } else { panes=`<div class="pane"><div class="cap">What the agent said</div><div class="big">“${esc(f.span.quote)}”</div></div><div class="pane"><div class="cap">${['wrong_information','ungrounded_answer'].includes(f.type)?'Approved fact':'Manifest rule'} · v${f.mv}</div><div class="big">${esc(f.rule.text)}</div><div class="muted" style="font-size:13px;margin-top:6px">${esc(f.reason)}</div></div><div class="pane next"><div class="cap">Next step</div><div class="big">${f.state==='open'?'Confirm it, or dismiss with a reason.':'Reviewed: '+f.state+'.'}</div></div>`;
+  } else { panes=`<div class="pane"><div class="cap">What the agent said</div><div class="big">“${esc(f.span.quote)}”</div></div><div class="pane"><div class="cap">${['wrong_information','ungrounded_answer'].includes(f.type)?'Approved fact':'Manifest rule'} · v${f.mv}</div><div class="big">${esc(f.rule.text)}</div><div class="muted" style="font-size:13px;margin-top:6px">${esc(f.reason)}</div></div><div class="pane next"><div class="cap">Next step</div><div class="big">${f.type==='callback_promised'?(f.state==='verified'?'Nothing to do. The customer was called and the request resolved.':f.state==='unknown'?'Ask the front desk to log the call they made, or call the customer now and log it.':callbackEvidence(f).task?'Make the call and log it. Vaada tracks the attempt and the outcome.':'Create the callback task, or approve Vaada’s proposal in Recovery, then log the call.'):f.type==='contact_update'?(f.state==='verified'?'Nothing to do.':'Update the contact in the CRM, then re-check.'):f.state==='open'?'Confirm it, or dismiss with a reason.':'Reviewed: '+f.state+'.'}</div></div>`;
     actions=f.state==='open'?`<div class="card"><h3>Review</h3><div class="row" style="margin-top:10px"><button class="btn" data-act="confirm" data-f="${f.id}">Confirm violation</button></div><label class="f" for="dismiss-r">Or dismiss with a reason</label><div class="row"><input type="text" id="dismiss-r" placeholder="e.g. agent was quoting the website" style="flex:1;min-width:0"><button class="btn ghost sm" data-act="dismiss" data-f="${f.id}">Dismiss</button></div><p class="muted" style="font-size:12.5px;margin-top:8px">Confirmed findings feed the client report and the next trial; dismissals feed precision tracking.</p></div>`:`<div class="card"><p>${pill(f.state)} ${f.review?esc(f.review):''}</p></div>`; }
   if(f.state==='confirmed'&&f.case&&f.case.status==='open'&&!RECORD.includes(f.type)) actions=`<div class="card"><h3>Case · open</h3><p class="muted" style="margin-top:4px">Owner ${esc(f.case.owner)}. Acknowledging does not close this. A passing independent check does: ${f.type==='config_drift'||f.type==='agent_drift'?'Vaada re-reads the live agent':f.type==='duplicate_effect'||f.type==='retry_risk'?'Vaada re-counts the effects':'Vaada re-runs the trial scenarios for this rule, 3 runs each'}.</p>
     <div class="row" style="margin-top:12px"><button class="btn ghost" data-act="${f.type==='agent_drift'?'reapprove':'applyfix'}" data-f="${f.id}" data-v="${f.agentVer}">${f.type==='agent_drift'?'Re-approve for agent v'+f.agentVer:f.type==='config_drift'?'Paste guardrails into the live prompt':'Apply the fix in the sandbox agent'}</button><button class="btn green" data-act="verifyfix" data-f="${f.id}">Verify fix</button></div>
     <label class="f" for="dismiss-r">False positive after all?</label><div class="row"><input type="text" id="dismiss-r" style="flex:1;min-width:0" placeholder="Reason (kept on record)"><button class="btn ghost sm" data-act="dismiss" data-f="${f.id}">Dismiss</button></div></div>`;
-  if(f.type==='callback_promised'&&f.case&&['open','awaiting'].includes(f.case.status)) actions=`<div class="card"><h3>Act</h3><p class="muted" style="margin-top:4px">Sandbox CRM · stands in for HighLevel tasks.</p><div class="row" style="margin-top:12px"><button class="btn ghost" data-act="maketask" data-f="${f.id}">Create and complete the callback task</button><button class="btn green" data-act="recheck" data-f="${f.id}">Re-check</button></div></div>`;
+  if(f.type==='callback_promised'&&f.case&&['open','awaiting'].includes(f.case.status)) actions=`<div class="card"><h3>Act</h3><p class="muted" style="margin-top:4px">Sandbox CRM · stands in for HighLevel tasks.</p><div class="row" style="margin-top:12px">${callbackEvidence(f).task?`<button class="btn ghost" data-act="attempt" data-o="no_answer" data-f="${f.id}">Log a call: no answer</button><button class="btn ghost" data-act="attempt" data-o="reached" data-f="${f.id}">Log a call: reached, resolved</button>`:`<button class="btn ghost" data-act="maketask" data-f="${f.id}">Create the callback task</button><button class="btn ghost" data-go="recovery">Or approve Vaada’s proposal</button>`}<button class="btn green" data-act="recheck" data-f="${f.id}">Re-check</button></div></div>`;
   if(f.type==='contact_update'&&f.case&&['open','awaiting'].includes(f.case.status)) actions=`<div class="card"><h3>Act</h3><p class="muted" style="margin-top:4px">Sandbox CRM · stands in for the HighLevel contact.</p><div class="row" style="margin-top:12px"><button class="btn ghost" data-act="updatecontact" data-f="${f.id}">Update the email in the CRM</button><button class="btn green" data-act="recheck" data-f="${f.id}">Re-check</button>${f.case.status==='awaiting'?`<button class="btn" data-act="contacted" data-f="${f.id}">Mark customer contacted</button>`:''}</div></div>`;
   const four=f.type==='booking'?`<div class="card"><div class="row between"><h3>Four-way check</h3><span class="muted" style="font-size:12.5px">Only the last column can verify.</span></div><div class="grid g4" style="margin-top:10px">
     <div><div class="eyebrow">Caller requested</div>${(p.evidence||[]).filter((e,i,a)=>i<a.length-1).map(e=>`<p style="font-size:13.5px">“${esc(e.quote)}”</p>`).join('')||'<p class="muted">—</p>'}</div>
@@ -943,6 +1096,7 @@ function viewDetail(){
   <div class="top"><div><div class="row" style="margin-bottom:10px">${ptag(f.type)} ${pill(f.state)} ${pill(f.severity)} ${f.changed?'<span class="pill s-medium plain">agent changed since approval</span>':''}${f.case?` <span class="pill plain">case · ${f.case.status}</span>`:''}</div><h1>${TITLES[f.type]}</h1><p class="lede">${esc(f.reason)}</p></div><div class="muted" style="font-size:13px;text-align:right">Call ${esc(call.ref)}<br>${fmtLong(call.start)} (Chicago)</div></div>
   ${f.boundary?`<div class="notice" style="margin-bottom:14px"><b>Boundary binding.</b> ${esc(f.boundary)}</div>`:''}
   <div class="vs">${panes}</div>
+  ${stagesHtml(f,{detail:true})}
   <div class="split" style="margin-top:14px"><div class="stack">${four}<div class="card"><h3>Transcript</h3><div style="margin-top:10px">${transcriptHtml(call,f.span?.turn,f.span?.quote)}</div></div>${ledgerHtml}${reads}${log}</div><div class="stack">${actions}${evidenceCard(f,call)}</div></div>`;
 }
 
@@ -991,7 +1145,7 @@ function viewTest(){
     <div class="grid g2">
       <div><label class="f" for="t-write">The booking tool</label><select id="t-write">${[['final','Wrote what the caller finally asked'],['first','Wrote the first time the caller said'],['tzwrong','Wrote the time in the business zone, ignoring the caller’s'],['retry','Timed out, retried: wrote twice'],['timeout','Reported failure, but the write landed'],['twin','Wrote it, plus again under a duplicate contact'],['fail','Failed, nothing written'],['none','Was not called']].map(([k,l])=>`<option value="${k}" ${(S.write??'first')===k?'selected':''}>${l}</option>`).join('')}</select></div>
       <div><label class="f" for="t-texts">Confirmation texts actually sent</label><select id="t-texts">${[['once','One'],['none','None'],['twice','Two']].map(([k,l])=>`<option value="${k}" ${(S.texts??'once')===k?'selected':''}>${l}</option>`).join('')}</select></div>
-      <div style="grid-column:1/-1"><label class="f">What else happened</label><div class="chips">${[['xferok','Transfer succeeded'],['xferfail','Transfer failed'],['task','Callback task created and completed'],['crm','CRM email updated']].map(([k,l])=>`<label class="chk"><input type="checkbox" data-extra="${k}" ${(S.extra||[]).includes(k)?'checked':''}>${l}</label>`).join('')}</div></div>
+      <div style="grid-column:1/-1"><label class="f">What else happened</label><div class="chips">${[['xferok','Transfer succeeded'],['xferfail','Transfer failed'],['task','Callback task created and completed'],['admintask','An unrelated admin task was completed'],['crm','CRM email updated']].map(([k,l])=>`<label class="chk"><input type="checkbox" data-extra="${k}" ${(S.extra||[]).includes(k)?'checked':''}>${l}</label>`).join('')}</div></div>
       <div><label class="f" for="t-lookup">Knowledge lookup</label><select id="t-lookup">${[['none','Not used'],['ok','Succeeded'],['fail','Failed before the answer']].map(([k,l])=>`<option value="${k}" ${(S.lookup??'none')===k?'selected':''}>${l}</option>`).join('')}</select></div>
       <div><label class="f" for="t-agent">Agent version that ran</label><select id="t-agent">${[['14','v14 (approved)'],['15','v15 (adds a cancel tool)'],['16','v16 (prompt edited only)']].map(([k,l])=>`<option value="${k}" ${(S.agentPick??'14')===k?'selected':''}>${l}</option>`).join('')}</select></div>
       <div><label class="f" for="t-start">Call started</label><select id="t-start">${[['now','A few minutes ago'],['hours','Last weekday at 11 AM (business hours)'],['boundary','40 s after the latest approval'],['early','13 days ago (before any approval)']].map(([k,l])=>`<option value="${k}" ${(S.startPick??'now')===k?'selected':''}>${l}</option>`).join('')}</select></div>
@@ -1024,9 +1178,9 @@ async function runTest(){
   const lastAgent=turns.filter(t=>t.role==='agent').at(-1)?.i??0;
   if(S.extra.includes('xferok')) tools.push({name:'transfer_call',arguments:{to:'front_desk'},result:{status:'transferred'},successful:true,after_turn:lastAgent});
   if(S.extra.includes('xferfail')) tools.push({name:'transfer_call',arguments:{to:'front_desk'},result:{status:'failed',error:'no answer'},successful:false,after_turn:Math.max(0,lastAgent-1)});
-  if(S.extra.includes('task')) makeTask(contact,start+5*MIN,'Callback',true);
+  if(S.extra.includes('task')) makeTask(contact,start+5*MIN,'Callback for caller',true); if(S.extra.includes('admintask')) makeTask(contact,start+5*MIN,'Scan updated insurance card into file',true,{attempts:[]});
   if(S.extra.includes('crm')){ const m=turns.map(t=>t.text.match(UPD_EMAIL)).find(Boolean); if(m) S.emails[contact]=m[1].toLowerCase(); }
-  if(S.texts!=='none'){ sendText(contact,start+150e3,'Confirmed: your appointment.'); if(S.texts==='twice') sendText(contact,start+160e3,'Confirmed: your appointment.'); }
+  if(S.texts==='promo') sendText(contact,start+150e3,'Bright Smile Dental: 20% off whitening all month! Reply STOP to opt out.'); else if(S.texts!=='none'){ const body=`Bright Smile Dental: your appointment is confirmed for ${pre.start?fmtLong(pre.start):'your requested time'}.`; sendText(contact,start+150e3,body); if(S.texts==='twice') sendText(contact,start+160e3,body); }
   const call=await processCall({turns,tools,start,agentVer:S.agentPick,transferred:$('#t-transfer').value==='yes'||S.extra.includes('xferok'),label:'Your test call',phone:S.contacts[contact],contact});
   S.lastRun={call}; render();
 }
@@ -1100,10 +1254,31 @@ document.addEventListener('click', async e=>{
   else if(a==='applyfix'){ const keys=FIX_KEYS[f.type]||[]; S.beh={...(S.beh||DEF_BEH)}; for(const k of keys) S.beh[k]=0; if(f.type==='config_drift'){ AGENTS[S.agentRunning]={...AGENTS[S.agentRunning],prompt:AGENTS[S.agentRunning].prompt.replace(/ Cleanings are \$\d+\./,'').replace(/ We can book root canals on weekdays\./,'')}; } f.case.log.push({at:now(),who:'Abhaya',what:f.type==='config_drift'?'Pasted the manifest guardrails into the live prompt (sandbox)':'Fixed the agent (sandbox: turned off '+keys.join(', ')+')'}); flash('Fix applied in the sandbox agent. Now press Verify fix.'); render(); }
   else if(a==='dismiss'){ const r=$('#dismiss-r').value.trim(); if(!r){ flash('Dismissing needs a reason.','err'); return render(); } f.state='dismissed'; f.review='— “'+r+'”'; if(f.case&&f.case.status==='open'){ f.case.status='dismissed'; f.case.log.push({at:now(),who:'Abhaya',what:'Dismissed as a false positive: '+r}); } flash('Dismissed. Your reason feeds precision tracking.'); render(); }
   else if(a==='reapprove'){ const b=currentVersion().body; S.draft={...b,handoff:{...b.handoff},agentVer:el.dataset.v,allowed_actions:[...b.allowed_actions,...(el.dataset.v==='15'?['cancel']:[])]}; S.draft.allowed_actions=[...new Set(S.draft.allowed_actions)]; flash(`Draft re-approval for agent v${el.dataset.v} ready. Review the changes, then approve.`); go('manifest'); }
+  else if(a&&a.startsWith('rec-')){ const r=S.recovery.find(x=>x.id===el.dataset.r); if(!r) return;
+    if(a==='rec-run'){ await runRecovery(r); flash(r.state==='verified'?`${r.id} ran and was verified in the record.`:r.state==='skipped'?`${r.id} skipped: someone already did it. Nothing was executed twice.`:`${r.id} ran but the record doesn’t show it.`, r.state==='failed'?'warn':''); }
+    if(a==='rec-reject'){ r.state='rejected'; r.log.push({at:now(),who:'Abhaya',what:'Rejected'}); flash(`${r.id} rejected. The finding stays open.`); }
+    if(a==='rec-elsewhere'){ const f=S.findings.find(x=>x.id===r.fid), p=f.promised, to=linkedContacts(p.contact,p.phone)[0];
+      if(r.kind==='callback_task') makeTask(to,now(),`Call back ${nameOf(p.contact)} (front desk, by hand)`,false,{attempts:[]});
+      if(r.kind==='send_confirmation') sendText(to,Math.max(S.calls.find(c=>c.id===f.callId).start+MIN,now()-1000),`Bright Smile Dental: your appointment is confirmed for ${fmtLong(p.apptStart)}.`);
+      if(r.kind==='move_appointment'){ const a2=S.cal.find(x=>x.id===f.obs.at(-1).rec.id); a2.start=p.start; }
+      flash('The front desk did it by hand in the CRM. Now approve the proposal: Vaada should notice and skip it.'); }
+    render(); }
+  else if(a&&a.startsWith('ex-')){ const x=S.exceptions.find(y=>y.id===el.dataset.x); if(!x) return;
+    if(a==='ex-approve'){ x.state='approved'; x.approvedBy='Dr. Priya Patel (client)'; x.approvedAt=now(); x.approvedHash=x.hash; x.log.push({at:now(),who:'Dr. Priya Patel',what:'Approved these exact terms'}); flash(`${x.id} approved for exactly $${x.amount}, ${nameOf(x.contact)}, until ${fmtLong(x.expires)}.`); }
+    if(a==='ex-again'){ const n=await newException({contact:x.contact,action:x.action,amount:x.amount,reason:x.reason,rule:x.rule,expires:now()+2*DAY}); n.log.push({at:now(),who:'Abhaya',what:`Re-requested after ${x.id} (${x.state})`}); flash(`${n.id} sent to the client for approval: $${n.amount}, new fingerprint.`); }
+    if(a==='ex-decline'){ x.state='declined'; x.log.push({at:now(),who:'Dr. Priya Patel',what:'Declined'}); flash(`${x.id} declined. The general rule applies.`); }
+    if(a==='ex-change'){ const v=+$('#ex-amt-'+x.id).value; if(!(v>0)) { flash('Enter an amount.','err'); return render(); } const old=x.amount; x.amount=v; x.hash=await exHash(x); if(x.hash!==x.approvedHash){ x.state='void'; x.log.push({at:now(),who:'Abhaya',what:`Changed the amount from $${old} to $${v}. Fingerprint changed, so the approval no longer applies.`}); flash(`Terms changed: ${x.id} is void and needs a new approval.`,'warn'); } }
+    if(a==='ex-use'){ const amt=+el.dataset.amt; const turns=[{i:0,role:'agent',text:'Thanks for calling Bright Smile Dental, how can I help?'},{i:1,role:'caller',text:'Hi, it’s about the late-cancellation fee from yesterday.'},{i:2,role:'agent',text:`I’ll waive the fee for you, so there’s no $${amt} charge on your account.`},{i:3,role:'caller',text:'Thank you so much.'}];
+      const call=await processCall({turns,tools:[],start:now()-2*MIN,agentVer:S.agentRunning,transferred:false,label:'Fee follow-up',phone:S.contacts[x.contact],contact:x.contact});
+      const fl=call.findings.map(id=>S.findings.find(z=>z.id===id)).find(z=>z.type==='unauthorized_promise');
+      if(call.covered.length) flash(`Covered by ${x.id}: the agent waived exactly $${amt} for ${nameOf(x.contact)}. No finding raised.`);
+      else { (x.misses??=[]).push({quote:turns[2].text,why:fl?fl.reason:'not covered'}); flash(`Not covered: ${fl?fl.reason:'flagged'}`,'warn'); } }
+    render(); }
   else if(a==='resetdraft'){ S.draft=null; render(); }
-  else if(a==='maketask'){ const p=f.promised; const to=linkedContacts(p.contact,p.phone)[0]; if(to){ makeTask(to,now(),'Callback (done by operator)',true); flash('Callback task created and completed in the sandbox CRM. Now press Re-check.'); } render(); }
+  else if(a==='attempt'){ const t=callbackEvidence(f).task; if(t){ t.attempts.push({at:now(),outcome:el.dataset.o,by:'Front desk (Maya)'}); if(el.dataset.o==='reached') t.done=true; check(f,'manual'); flash(el.dataset.o==='reached'?'Logged: customer reached and the task closed. '+f.reason:'Logged a call attempt with no answer. Vaada keeps tracking until the deadline.'); } render(); }
+  else if(a==='maketask'){ const p=f.promised; const to=linkedContacts(p.contact,p.phone)[0]; if(to){ makeTask(to,now(),'Callback for caller (created by operator)',false,{attempts:[]}); flash('Callback task created in the sandbox CRM. Next, log the call attempt.'); } render(); }
   else if(a==='updatecontact'){ const p=f.promised; const to=linkedContacts(p.contact,p.phone)[0]; if(to){ S.emails[to]=p.value; flash('Email updated in the sandbox CRM. Now press Re-check.'); } render(); }
-  else if(a==='sendtext'){ const p=f.promised, call=S.calls.find(c=>c.id===f.callId); const to=linkedContacts(p.contact,p.phone)[0]; if(to){ sendText(to,Math.max(call.start+MIN,now()-1000),'Your appointment is confirmed (sent by operator).'); flash('Text sent in the sandbox conversation. Now press Re-check.'); } else flash('No sandbox contact matches this caller.','err'); render(); }
+  else if(a==='sendtext'){ const p=f.promised, call=S.calls.find(c=>c.id===f.callId); const to=linkedContacts(p.contact,p.phone)[0]; if(to){ sendText(to,Math.max(call.start+MIN,now()-1000),`Bright Smile Dental: your appointment is confirmed for ${p.apptStart?fmtLong(p.apptStart):'your booked time'}. (sent by the operator)`); flash('Text sent in the sandbox conversation. Now press Re-check.'); } else flash('No sandbox contact matches this caller.','err'); render(); }
   else if(a==='approve'){ const cur=currentVersion(); const d=S.draft||{...cur.body,agentVer:cur.body.agent.approved_agent_version}; const v=await approveVersion(d,{approver:$('#m-name').value.trim()||'Unnamed',role:$('#m-role').value,agentVer:d.agentVer}); S.draft=null; S.integ=null; flash(`v${v.version} approved, chained to v${v.version-1} and signed. It is in force now; earlier calls keep their verdicts.`); render(); }
   else if(a==='copy'){ try{ await navigator.clipboard.writeText($('#guard').textContent); el.textContent='Copied'; }catch(err){ const rg=document.createRange(); rg.selectNodeContents($('#guard')); getSelection().removeAllRanges(); getSelection().addRange(rg); el.textContent='Selected'; } setTimeout(()=>el.textContent='Copy',1400); }
   else if(a==='trial'){ el.textContent='Running…'; try{ await runTrial(S.beh||DEF_BEH,+$('#tr-runs').value); }catch(err){ flash(err.message,'err'); } render(); }

@@ -74,3 +74,17 @@
   - Findings are rows in a single sheet, with a severity colour on the edge.
   - Works on phones and in dark mode.
 - The sandbox page uses the same design.
+
+## Evidence matching, completion stages, recovery and exceptions
+- **Fixed:** a callback promise was marked verified by any completed task on the contact, for example "Scan insurance card". Now a task counts only if the agent's workflow returned its ID or its title is about calling back. Unrelated tasks are listed as "seen, not counted".
+- **Fixed:** a confirmation-text promise was marked verified by any outbound SMS, including marketing. Now a text counts only if it is a confirmation naming the booked date and time. Marketing, generic and wrong-time texts are listed with the reason.
+- **Fixed:** typographic apostrophes ("I’ll") hid promises from the detector.
+- **Completion stages:** each stage needs its own evidence.
+  - Callback: task created → call attempt logged → customer reached → resolved. A task ticked done with no logged call is "not proven", not verified.
+  - Text: written → names the right appointment → sent → delivered.
+  - Booking: record exists → details match → customer told.
+  - Shown in the inbox and on each finding.
+- **Sandbox only:**
+  - *Recovery*: Vaada proposes one of three bounded actions, an operator approves, Vaada checks that nobody already did it, executes, then re-reads the record.
+  - *Exceptions*: a client approves one exact exception (customer, action, amount, expiry). Changing any term voids it, and a follow-up call shows covered versus not covered.
+- 86 offline tests, including regression tests for both reported cases.

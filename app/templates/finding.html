@@ -32,8 +32,8 @@
 {% set msgs = (obs[0].fields|j({})).messages if obs else [] %}
 <div class="vs {{ 'eq' if f.state in ('verified','resolved') else ('na' if f.state in ('pending','unknown') else '') }}">
   <div class="pane"><div class="cap">What the agent promised</div><div class="big">“{{ span.quote }}”</div><div class="muted" style="margin-top:8px;font-size:13px">expected: exactly one text to {{ p.caller_phone or p.contact_id or 'the caller' }}</div></div>
-  <div class="pane {{ 'good' if f.state=='verified' else ('bad' if f.state=='contradicted' else '') }}"><div class="cap">What the conversation shows</div>
-    <div class="big">{% if obs %}{{ msgs|length }} text{{ '' if msgs|length == 1 else 's' }} sent{% else %}Not read yet{% endif %}</div>
+  <div class="pane {{ 'good' if f.state=='verified' else ('bad' if f.state=='contradicted' else '') }}"><div class="cap">What the CRM shows</div>
+    <div class="big">{% if obs %}{% if msgs %}{{ msgs|length }} confirmation{{ '' if msgs|length == 1 else 's' }} sent{% else %}No confirmation sent{% endif %}{% else %}Not read yet{% endif %}</div>
     <div class="muted" style="margin-top:8px;font-size:13px">{% for m in msgs[:3] %}{{ m.sent_at|localtime(client.timezone, '%-I:%M %p') }} · “{{ (m.body or '')[:60] }}”<br>{% endfor %}</div></div>
   <div class="pane next"><div class="cap">Next step</div><div class="big">{{ next_step }}</div></div>
 </div>
@@ -45,6 +45,7 @@
 </div>
 {% endif %}
 
+{{ stage_card(stages) }}
 {% if f.type == 'booking' %}{% set callers = (p.evidence or [])|selectattr('role', 'equalto', 'caller')|list %}{% set agents = (p.evidence or [])|selectattr('role', 'equalto', 'agent')|list %}
 <div class="card" style="margin-top:16px"><div class="row between"><h3>Four-way check</h3><span class="muted" style="font-size:12.5px">Each column is independent evidence. Only the last one can verify.</span></div>
   <div class="grid g4" style="margin-top:12px">
@@ -114,7 +115,7 @@
         <div class="row">
           <form method="post" action="/cases/{{ case.id }}/act" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="action" value="recheck"><button class="btn green">Re-check calendar</button></form>
           {% if client.is_sandbox and f.type in ('callback_promised', 'contact_update') %}<form method="post" action="/sandbox/{{ client.id }}" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="action" value="{{ 'make_task' if f.type == 'callback_promised' else 'update_contact' }}"><input type="hidden" name="phone" value="{{ p.caller_phone or '' }}"><input type="hidden" name="contact_id" value="{{ p.contact_id or '' }}"><input type="hidden" name="field" value="{{ p.field or '' }}"><input type="hidden" name="value" value="{{ p.value or '' }}"><input type="hidden" name="return" value="/findings/{{ f.id }}"><button class="btn ghost">{{ 'Create and complete the task in sandbox' if f.type == 'callback_promised' else 'Update the contact in sandbox' }}</button></form>
-          {% elif client.is_sandbox and f.type == 'message_promised' %}<form method="post" action="/sandbox/{{ client.id }}" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="action" value="send_text"><input type="hidden" name="phone" value="{{ p.caller_phone or '' }}"><input type="hidden" name="contact_id" value="{{ p.contact_id or '' }}"><input type="hidden" name="return" value="/findings/{{ f.id }}"><button class="btn ghost">Send the text in sandbox</button></form>
+          {% elif client.is_sandbox and f.type == 'message_promised' %}<form method="post" action="/sandbox/{{ client.id }}" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="action" value="send_text"><input type="hidden" name="finding_id" value="{{ f.id }}"><input type="hidden" name="phone" value="{{ p.caller_phone or '' }}"><input type="hidden" name="contact_id" value="{{ p.contact_id or '' }}"><input type="hidden" name="return" value="/findings/{{ f.id }}"><button class="btn ghost">Send the text in sandbox</button></form>
           {% elif client.is_sandbox and p.appointment_id %}<a class="btn ghost" href="/sandbox/{{ client.id }}?appt={{ p.appointment_id }}&return=/findings/{{ f.id }}">Fix in sandbox HighLevel</a>
           {% elif client.is_sandbox and p.contact_id %}<a class="btn ghost" href="/sandbox/{{ client.id }}?return=/findings/{{ f.id }}">Fix in sandbox HighLevel</a>
           {% elif client.hl_location_id %}<a class="btn ghost" target="_blank" rel="noopener" href="https://app.gohighlevel.com/v2/location/{{ client.hl_location_id }}/calendars/view">Open in HighLevel ↗</a>{% endif %}

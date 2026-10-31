@@ -55,6 +55,7 @@
       <div class="what">“{{ (s.quote or '')[:150] }}”</div>
       <div class="trio"><div><b>Rule (manifest v{{ r.manifest_version }})</b>{{ (r.rule|j({})).text }}</div><div><b>Why flagged</b>{{ r.reason }}</div><div><b>{{ 'Status:' if r.state == 'confirmed' else 'Next:' }}</b>{% if r.state == 'confirmed' %}Confirmed · {{ r.case_status|replace('_',' ') }} · owner {{ r.owner or 'unassigned' }} · closes only on a passing re-test{% else %}Read the clip, then confirm or dismiss{% endif %}</div></div>
     {% endif %}
+    {{ stage_strip(r.stages) }}
   </div>
   <div style="text-align:right">{{ pill(r.severity) }}{% if r.due_at %}<div class="faint" style="font-size:12px;margin-top:8px">due {{ r.due_at|ago }}</div>{% endif %}</div>
 </a>

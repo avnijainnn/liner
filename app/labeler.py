@@ -84,19 +84,20 @@ def sentences(text: str):
 def rules_labels(turns: list[dict]) -> list[Label]:
     out: list[Label] = []
     for t in turns:
-        for off, s in sentences(t['text']):
+        for off, s0 in sentences(t['text']):
+            s = s0.replace('\u2019', "'").replace('\u2018', "'")   # typographic apostrophes match like straight ones
             if t['role'] == 'caller':
                 if HANDOFF_REQ.search(s):
-                    out.append(Label(t['i'], off, off + len(s), s, 'handoff_request', 'person'))
+                    out.append(Label(t['i'], off, off + len(s0), s0, 'handoff_request', 'person'))
                 continue
             if ASK_FORM.search(s) and not ASK_NEG.search(s):
                 for cls, pat in ASK_CLASSES.items():
                     if re.search(pat, s, re.I):
-                        out.append(Label(t['i'], off, off + len(s), s, 'ask', cls))
+                        out.append(Label(t['i'], off, off + len(s0), s0, 'ask', cls))
             if PROMISE_MARK.search(s) and not PROMISE_NEG.search(s) and not s.rstrip().endswith('?'):
                 for cls, pat in PROMISE_TYPES.items():
                     if re.search(pat, s, re.I):
-                        out.append(Label(t['i'], off, off + len(s), s, 'promise', cls))
+                        out.append(Label(t['i'], off, off + len(s0), s0, 'promise', cls))
     return out
 
 

@@ -23,6 +23,8 @@ DEFAULT_PROFILE = {
     'double_book_reschedule': 0.0, 'no_transfer': 0.0, 'phantom_booking': 0.0, 'late_write_min': 0,
     # Problem A: facts
     'wrong_fact': 0.0, 'kb_fail': 0.0,
+    # evidence matching: the wrong record shows up instead of the promised one
+    'marketing_text': 0.0, 'admin_task': 0.0, 'tick_only': 0.0,
     # Problem C: execution
     'timeout_landed': 0.0, 'retry_dup': 0.0, 'dup_contact': 0.0, 'no_text': 0.0, 'double_text': 0.0,
     'texts': False,
@@ -210,8 +212,13 @@ class SimAgent:
             self.say('user', 'Can someone call me back about my bill?')
             self.say('agent', 'Of course, someone will call you back within the hour.')
             self.say('user', 'Thanks.')
-            if not self.hit('no_task'):
-                self.task(contact, 'Call back about bill', done=not self.hit('task_open'))
+            if self.hit('admin_task'):          # someone closed an unrelated task on the same contact
+                with self.db.tx():
+                    self.db.insert('sandbox_tasks', agency_id=self.client['agency_id'], client_id=self.client['id'],
+                                   task_id=f"task_{self.rng.randrange(16**8):08x}", contact_id=contact, title='Scan updated insurance card into file',
+                                   created_at=iso(min(now(), self.started + timedelta(minutes=20))), completed=1, completed_at=iso(min(now(), self.started + timedelta(minutes=25))))
+            elif not self.hit('no_task'):
+                self.task(contact, 'Call back about bill', done=not self.hit('task_open'), called=False if self.hit('tick_only') else None)
         elif k == 'book':
             self._book(scenario, contact, loc)
         elif k == 'reschedule':
@@ -306,8 +313,11 @@ class SimAgent:
             self._write(twin, start)
         if self.p.get('texts'):
             self.say('agent', "You'll get a text confirmation shortly.")
-            if not self.hit('no_text'):
-                body = f"Confirmed: your appointment on {start.strftime('%b %d at %I:%M %p')}."
+            if self.hit('marketing_text'):
+                self.text(contact, f"{self.client['name']}: 20% off whitening all month! Book online. Reply STOP to opt out.")
+            elif not self.hit('no_text'):
+                loc_start = start.astimezone(ZoneInfo(self.tz))
+                body = f"{self.client['name']}: your appointment is confirmed for {loc_start:%a %b} {loc_start.day} at {loc_start.hour % 12 or 12}:{loc_start.minute:02d} {'AM' if loc_start.hour < 12 else 'PM'}."
                 self.text(contact, body)
                 if self.hit('double_text'):
                     self.text(contact, body)
@@ -327,13 +337,21 @@ class SimAgent:
         d0 = self._day(loc, 3)
         return self._write(contact, combine(d0, 11, 0, self.tz), created=now() - timedelta(days=7)), d0
 
-    def task(self, contact, title, done=True):
+    def task(self, contact, title, done=True, called=None):
+        """A callback task, returned to the agent by ID; when done, the front desk's call is logged in the conversation."""
         t = self.started + timedelta(minutes=5) if hasattr(self, 'started') else now()
+        tid = f"task_{self.rng.randrange(16**8):08x}"
         with self.db.tx():
             self.db.insert('sandbox_tasks', agency_id=self.client['agency_id'], client_id=self.client['id'],
-                           task_id=f"task_{self.rng.randrange(16**8):08x}", contact_id=contact, title=title,
+                           task_id=tid, contact_id=contact, title=title,
                            created_at=iso(min(now(), t)), due_at=None, completed=1 if done else 0,
                            completed_at=iso(min(now(), t + timedelta(minutes=20))) if done else None)
+            if done if called is None else called:
+                self.db.insert('sandbox_messages', agency_id=self.client['agency_id'], client_id=self.client['id'],
+                               message_id=f"call_{self.rng.randrange(16**8):08x}", contact_id=contact, direction='outbound', channel='call',
+                               body='Outbound call, customer reached', sent_at=iso(min(now(), t + timedelta(minutes=15))))
+        self.tool('create_task', {'contactId': contact, 'title': title}, {'id': tid})
+        return tid
 
     def _transfer_failure(self, contact):
         self.say('user', 'Can I speak to a real person please?')

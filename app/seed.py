@@ -159,6 +159,17 @@ def seed(db: Database | None = None, *, quiet=False) -> int:
             when -= timedelta(hours=3)
             loc = when.astimezone(__import__('zoneinfo').ZoneInfo('America/Chicago'))
         scene({**calm, **over}, sc, when, f'P0:{i}')
+    # Evidence matching: a record exists, but it isn't the one that was promised --------
+    for i, (over, sc, back) in enumerate([
+            ({'texts': True, 'marketing_text': 1}, {'kind': 'book', 'variant': 'simple', 'contact': 'ct_olivia_r', 'caller_name': 'Olivia Reed'}, timedelta(hours=11)),
+            ({'admin_task': 1}, {'kind': 'callback', 'contact': 'ct_tom_b', 'caller_name': 'Tom Baker'}, timedelta(days=1, hours=2)),
+            ({'tick_only': 1}, {'kind': 'callback', 'contact': 'ct_june_p', 'caller_name': 'June Park'}, timedelta(days=1, hours=5))]):
+        when = t0 - back
+        loc = when.astimezone(__import__('zoneinfo').ZoneInfo('America/Chicago'))
+        while loc.weekday() >= 5 or not (9 <= loc.hour < 16):
+            when -= timedelta(hours=3)
+            loc = when.astimezone(__import__('zoneinfo').ZoneInfo('America/Chicago'))
+        scene({**calm, **over}, sc, when, f'EV:{i}')
     # The demo scene: "not 9, make it 10" -> calendar shows 9 -----------------
     client = db.one('SELECT * FROM clients WHERE id=?', bright)
     snap = json.loads(client['agent_snapshot'])

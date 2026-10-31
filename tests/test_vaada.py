@@ -526,7 +526,7 @@ class LedgerTests(Base):
             self.db.run('UPDATE ledger_entries SET verdict=?', 'once')
 
 
-class P0Tests(Base):
+class P0Base(Base):
     POLICY = {**manifest.DEFAULT_POLICY, 'allowed_actions': ['book', 'reschedule'],
               'deliverable_promises': ['callback', 'sms_confirmation'], 'never_promise': ['discount'],
               'booking_rules': {'within_business_hours': True, 'min_notice_hours': 2, 'max_days_ahead': 60, 'excluded_services': ['root canal']},
@@ -552,6 +552,8 @@ class P0Tests(Base):
             verify.check(self.db, f['id'], 'final')
         return cid, {(r['type'], r['state']) for r in self.db.all('SELECT type, state FROM findings WHERE call_id=?', cid)}
 
+
+class P0Tests(P0Base):
     def test_1_tuesday_to_thursday(self):
         _, t = self.run_sc({'kind': 'book', 'variant': 'interrupt'}, interrupt_bug=1.0)
         self.assertIn(('booking', 'contradicted'), t)
@@ -773,3 +775,79 @@ class ModelReaderTests(unittest.TestCase):
 
 def parse_local(s):
     return datetime.fromisoformat(s.replace('Z', '+00:00')).astimezone(ZoneInfo(TZ)).strftime('%m-%d %H:%M')
+
+
+class EvidenceMatchingTests(P0Base):
+    """Regression: a record only counts for a promise if it is about that promise."""
+
+    def _finding(self, cid, ftype):
+        return self.db.one('SELECT * FROM findings WHERE call_id=? AND type=?', cid, ftype)
+
+    def _contact(self, cid):
+        b = self._finding(cid, 'booking')
+        if b:
+            return json.loads(b['promised'])['contact_id']
+        return self.db.one('SELECT contact_id FROM sandbox_contacts ORDER BY id DESC')['contact_id']
+
+    def test_unrelated_admin_task_does_not_verify_a_callback(self):
+        from app.sim import DEFAULT_PROFILE
+        self.set_sim(**{**{k: 0 for k in DEFAULT_PROFILE}, 'texts': False, 'no_task': 1.0})
+        cid = self.call({'kind': 'callback'}, self.biz_time(), seed='admin')
+        f = self._finding(cid, 'callback_promised')
+        self.db.insert('sandbox_tasks', agency_id=f['agency_id'], client_id=f['client_id'], task_id='task_admin', contact_id=self._contact(cid),
+                       title='Scan updated insurance card into file', created_at=iso(now()), completed=1, completed_at=iso(now()))
+        out = verify.check(self.db, f['id'], 'final')
+        self.assertEqual(out['state'], 'contradicted')
+        self.assertIn('not a callback task', out['reason'])
+
+    def test_ticked_task_without_a_logged_call_is_not_proof(self):
+        from app.sim import DEFAULT_PROFILE
+        self.set_sim(**{**{k: 0 for k in DEFAULT_PROFILE}, 'texts': False, 'no_task': 1.0})
+        cid = self.call({'kind': 'callback'}, self.biz_time(), seed='tick')
+        f = self._finding(cid, 'callback_promised')
+        self.db.insert('sandbox_tasks', agency_id=f['agency_id'], client_id=f['client_id'], task_id='task_tick', contact_id=self._contact(cid),
+                       title='Call back about bill', created_at=iso(now()), completed=1, completed_at=iso(now()))
+        out = verify.check(self.db, f['id'], 'final')
+        self.assertEqual(out['state'], 'unknown')
+        obs = json.loads(self.db.one('SELECT fields FROM observations WHERE finding_id=? ORDER BY id DESC', f['id'])['fields'])
+        self.assertEqual([s['state'] for s in obs['stages']], ['done', 'unproven', 'unproven', 'unproven'])
+
+    def test_callback_linked_by_task_id_verifies(self):
+        _, t = self.run_sc({'kind': 'callback'})
+        self.assertIn(('callback_promised', 'verified'), t)
+
+    def test_marketing_text_does_not_verify_a_confirmation(self):
+        from app.sim import DEFAULT_PROFILE
+        self.set_sim(**{**{k: 0 for k in DEFAULT_PROFILE}, 'texts': True, 'no_text': 1.0})
+        cid = self.call({'kind': 'book', 'variant': 'simple'}, self.biz_time(), seed='mkt')
+        f = self._finding(cid, 'message_promised')
+        self.db.insert('sandbox_messages', agency_id=f['agency_id'], client_id=f['client_id'], message_id='msg_mkt', contact_id=self._contact(cid),
+                       direction='outbound', channel='sms', body='Spring special: 20% off whitening this month! Reply STOP to opt out.',
+                       sent_at=iso(now() - timedelta(minutes=1)))
+        out = verify.check(self.db, f['id'], 'final')
+        self.assertEqual(out['state'], 'contradicted')
+        self.assertIn('marketing', out['reason'])
+
+    def test_confirmation_naming_the_appointment_verifies(self):
+        _, t = self.run_sc({'kind': 'book', 'variant': 'simple'}, texts=True)
+        self.assertIn(('message_promised', 'verified'), t)
+
+    def test_confirmation_for_a_different_time_does_not_verify(self):
+        from app.sim import DEFAULT_PROFILE
+        self.set_sim(**{**{k: 0 for k in DEFAULT_PROFILE}, 'texts': True, 'no_text': 1.0})
+        cid = self.call({'kind': 'book', 'variant': 'simple'}, self.biz_time(), seed='othertime')
+        f = self._finding(cid, 'message_promised')
+        self.db.insert('sandbox_messages', agency_id=f['agency_id'], client_id=f['client_id'], message_id='msg_other', contact_id=self._contact(cid),
+                       direction='outbound', channel='sms', body='Bright Smile Dental: your appointment is confirmed for Jan 3 at 7:15 AM.',
+                       sent_at=iso(now() - timedelta(minutes=1)))
+        out = verify.check(self.db, f['id'], 'final')
+        self.assertEqual(out['state'], 'contradicted')
+        self.assertIn('different time', out['reason'])
+
+
+class ApostropheTests(unittest.TestCase):
+    def test_typographic_apostrophe_promise_is_detected(self):
+        turns = [{'i': 0, 'role': 'agent', 'text': 'I’ll waive the fee for you.'}]
+        labs = rules_labels(turns)
+        self.assertTrue(any(l.kind == 'promise' and l.cls == 'discount' for l in labs))
+        self.assertIn('’', next(l.quote for l in labs if l.kind == 'promise'))

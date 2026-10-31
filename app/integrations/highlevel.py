@@ -112,7 +112,8 @@ class HighLevelCRM:
                 typ = str(m.get('messageType') or m.get('type') or '').upper()
                 out.append({'id': m.get('id'), 'contact_id': contact_id, 'direction': (m.get('direction') or '').lower(),
                             'channel': 'sms' if 'SMS' in typ else ('email' if 'EMAIL' in typ else typ.lower()),
-                            'body': (m.get('body') or '')[:300], 'sent_at': _iso_or_none(m.get('dateAdded'), self.tz)})
+                            'body': (m.get('body') or '')[:300], 'status': (m.get('status') or '').lower() or None,
+                            'sent_at': _iso_or_none(m.get('dateAdded'), self.tz)})
         return out
 
     def location_settings(self) -> dict:

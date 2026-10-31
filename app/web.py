@@ -81,7 +81,28 @@ def problem_tag(t):
     return Markup(f'<span class="ptag p-{p}">{label}</span>')
 
 
-templates.env.globals.update(problem_tag=problem_tag, RECORD_TYPES=checks.RECORD_TYPES, pill=pill, ASK_CLASSES=manifest.ASK_CLASSES, PROMISE_CLASSES=manifest.PROMISE_CLASSES,
+def stage_strip(st):
+    from markupsafe import Markup, escape
+    if not st or not st.get('list'):
+        return ''
+    return Markup('<ol class="stages">' + ''.join(f'<li class="{escape(x["state"])}" title="{escape(x.get("note") or "")}">{escape(x["name"])}</li>'
+                                                  for x in st['list']) + '</ol>')
+
+
+def stage_card(st):
+    from markupsafe import Markup, escape
+    from .evidence import LABEL
+    if not st or not st.get('list'):
+        return ''
+    rows = ''.join(f'<li class="{escape(x["state"])}"><span><b>{escape(x["name"])}</b><em>{LABEL.get(x["state"], x["state"])}</em>'
+                   + (f'<small>{escape(x["note"])}</small>' if x.get('note') else '') + '</span></li>' for x in st['list'])
+    ign = ''.join(f'<p><span class="mono">{escape(i.get("id") or "")}</span> “{escape(i.get("label") or "")}”: {escape(i.get("why") or "")}</p>' for i in st.get('ignored') or [])
+    return Markup('<div class="card" style="margin-top:16px"><div class="row between"><h3>Completion stages</h3><span class="muted" style="font-size:13px">'
+                  'Each stage needs its own evidence. A ticked box doesn’t count for the stages after it.</span></div>'
+                  f'<ol class="stages big">{rows}</ol>' + (f'<div class="ignored"><b>Also in the CRM, not counted</b>{ign}</div>' if ign else '') + '</div>')
+
+
+templates.env.globals.update(problem_tag=problem_tag, stage_strip=stage_strip, stage_card=stage_card, RECORD_TYPES=checks.RECORD_TYPES, pill=pill, ASK_CLASSES=manifest.ASK_CLASSES, PROMISE_CLASSES=manifest.PROMISE_CLASSES,
                              DELIVERABLE_TYPES=manifest.DELIVERABLE_TYPES, ACTIONS=manifest.ACTIONS, DAYS=manifest.DAYS,
                              DEMO_MODE=config.DEMO_MODE)
 
@@ -217,11 +238,16 @@ async def inbox(request: Request):
     rows = _finding_rows(db, u['agency_id'], """AND ((f.type NOT IN ('booking','message_promised','callback_promised','contact_update') AND (f.state='open' OR (f.state='confirmed' AND k.status IN ('open','retesting')))) OR
                           (f.type IN ('booking','message_promised','callback_promised','contact_update') AND k.status IN ('open','fixed_awaiting_contact')))""")
     for r in rows:
-        if r['type'] == 'booking':
+        if r['type'] in ('booking', 'callback_promised', 'message_promised'):
             o = db.one('SELECT fields, reason FROM observations WHERE finding_id=? ORDER BY id DESC LIMIT 1', r['id'])
+            if r['type'] != 'booking':
+                r['stages'] = _stages(db, r, o)
+        if r['type'] == 'booking':
             recs = loads(o['fields'], {}).get('records', []) if o else []
             pid = r.j('promised', {}).get('appointment_id')
             rec = next((x for x in recs if x.get('id') == pid), recs[0] if recs else None)
+            k = db.one('SELECT * FROM cases WHERE finding_id=?', r['id'])
+            r['stages'] = _stages(db, r, o, rec, k)
             r['cal'] = (localtime(rec['start_at'], r['timezone'], '%a %d %b, %-I:%M %p') + f" · {rec.get('status')}") if rec and rec.get('start_at') else (o['reason'] if o else 'Not read yet')
     watching = _finding_rows(db, u['agency_id'], "AND f.type IN ('booking','message_promised','callback_promised','contact_update') AND f.state='pending'", limit=10)
     m = reports.agency_metrics(db, u['agency_id'])
@@ -262,6 +288,18 @@ async def findings_queue(request: Request):
     return render(request, 'findings.html', {'rows': rows, 'clients': clients, 'owners': owners, 'q': dict(q)})
 
 
+def _stages(db, f, o, rec=None, case=None):
+    """Completion stages for a record promise: from the latest check, or derived for bookings."""
+    from . import evidence
+    fields = loads(o['fields'], {}) if o else {}
+    if f['type'] in ('callback_promised', 'message_promised'):
+        return {'list': fields.get('stages') or [], 'ignored': fields.get('ignored') or []}
+    if f['type'] == 'booking':
+        sms = db.one("SELECT state FROM findings WHERE call_id=? AND type='message_promised'", f['call_id'])
+        return {'list': evidence.booking_stages(f, rec, bool(o), dict(case) if case else None, sms['state'] if sms else None), 'ignored': []}
+    return None
+
+
 def _finding_ctx(db, u, fid):
     f = owned('findings', fid, u)
     call = db.one('SELECT * FROM calls WHERE id=?', f['call_id'])
@@ -283,7 +321,8 @@ def _finding_ctx(db, u, fid):
     return dict(ledger=_ledger.entries(db, fid), linked=db.all("SELECT id, type, state FROM findings WHERE dedupe_key LIKE ? OR id=?", f"exec:{fid}:%", (loads(f['promised'], {}) or {}).get('commitment_id') or -1),
                 f=f, call=call, client=client, obs=obs, case=case, events=events, st=st, receipt=receipt, mv=mv, jobs=jobs,
                 turns=loads(call['turns'], []), tools=loads(call['tool_calls'], []), users=users, rec=latest_rec,
-                approval=db.one('SELECT * FROM approvals WHERE manifest_version_id=?', mv['id']) if mv else None)
+                approval=db.one('SELECT * FROM approvals WHERE manifest_version_id=?', mv['id']) if mv else None,
+                stages=_stages(db, f, obs[0] if obs else None, latest_rec, case))
 
 
 def next_step(ctx):
@@ -493,6 +532,18 @@ async def client_simulate(request: Request):
         return back(f"/calls/{res['call_id']}")
     flash(request, f'Webhook result: {res}', 'warn')
     return back(f"/clients/{c['id']}")
+
+
+def _confirmation_body(db, client, finding_id) -> str:
+    """The text the operator sends: the business name and the booked time, nothing else."""
+    from zoneinfo import ZoneInfo
+    f = db.one('SELECT call_id FROM findings WHERE id=?', int(finding_id)) if finding_id else None
+    b = db.one("SELECT promised FROM findings WHERE call_id=? AND type='booking' ORDER BY id DESC", f['call_id']) if f else None
+    st = (loads(b['promised'], {}) or {}).get('start_at') if b else None
+    if not st:
+        return f"{client['name']}: your appointment is confirmed."
+    d = parse_iso(st).astimezone(ZoneInfo(client['timezone']))
+    return f"{client['name']}: your appointment is confirmed for {d:%a %b} {d.day} at {d.hour % 12 or 12}:{d.minute:02d} {'AM' if d.hour < 12 else 'PM'}."
 
 
 async def client_sync(request: Request):
@@ -793,8 +844,10 @@ async def sandbox_crm(request: Request):
                 flash(request, 'No sandbox contact matches this caller.', 'err')
             elif f['action'] == 'make_task':
                 db.insert('sandbox_tasks', agency_id=c['agency_id'], client_id=c['id'], task_id='task_' + secrets.token_hex(4), contact_id=cid,
-                          title='Callback (done by operator)', created_at=iso(now()), completed=1, completed_at=iso(now()))
-                flash(request, 'Callback task created and marked done in the sandbox CRM. Now press Re-check.')
+                          title='Call back the caller (operator)', created_at=iso(now()), completed=1, completed_at=iso(now()))
+                db.insert('sandbox_messages', agency_id=c['agency_id'], client_id=c['id'], message_id='call_' + secrets.token_hex(4),
+                          contact_id=cid, direction='outbound', channel='call', body='Outbound call by operator, customer reached', sent_at=iso(now()))
+                flash(request, 'Callback task created, the call logged and the task closed in the sandbox CRM. Now press Re-check.')
             else:
                 db.update('sandbox_contacts', {'contact_id': cid}, **{f.get('field') or 'email': f.get('value')})
                 flash(request, 'Contact updated in the sandbox CRM. Now press Re-check.')
@@ -805,7 +858,7 @@ async def sandbox_crm(request: Request):
                                                if digits(r['phone']) and digits(r['phone']) == digits(f.get('phone'))), None)
             if cid:
                 db.insert('sandbox_messages', agency_id=c['agency_id'], client_id=c['id'], message_id='msg_' + secrets.token_hex(4),
-                          contact_id=cid, direction='outbound', channel='sms', body='Your appointment is confirmed (sent by operator).', sent_at=iso(now()))
+                          contact_id=cid, direction='outbound', channel='sms', body=_confirmation_body(db, c, f.get('finding_id')), sent_at=iso(now()))
                 flash(request, 'Text sent in the sandbox conversation. Now press Re-check.')
             else:
                 flash(request, 'No sandbox contact matches this caller.', 'err')

@@ -205,23 +205,51 @@ def check_message(db: Database, f: dict, stage: str, actor: str = 'vaada') -> di
         err = str(e)
     except Exception as e:
         err = f'unexpected read error: {type(e).__name__}'
-    effects = ledger.message_effects(msgs, parse_iso(call['started_at']), parse_iso(call['ended_at']))
+    from . import evidence
+    window = ledger.message_effects(msgs, parse_iso(call['started_at']), parse_iso(call['ended_at']))
+    book = db.one("SELECT promised FROM findings WHERE call_id=? AND type='booking' ORDER BY id DESC", f['call_id'])
+    appt = (loads(book['promised'], {}) or {}).get('start_at') if book else None
+    tok = evidence.appt_tokens(appt, client['timezone'])
+    ids = evidence.tool_ids(loads(call['tool_calls'], []), r'sms|text|message') | set(p.get('recovery_ids') or [])
+    rows = [(m, evidence.classify_message(m, tok)) for m in window]
+    effects = [m for m, k in rows if k == 'confirmation']
+    link = 'id' if any(str(m.get('id')) in ids for m in effects) else ('content' if effects else None)
+    ignored = [{'id': m.get('id'), 'label': (m.get('body') or '')[:120], 'why': evidence.WHY[k]} for m, k in rows if k != 'confirmation']
+    kinds = {k for _, k in rows}
     if err:
         state, reason, lv = ('unknown' if final or stage == 'manual' else 'pending'), err, None
     elif not linked:
         state, reason, lv = 'unknown', 'Could not identify the caller in the CRM, so the text cannot be checked', None
+    elif effects and all((m.get('status') or '') == 'failed' for m in effects):
+        state, reason, lv = 'contradicted', 'The confirmation was written, but the provider reports it failed', 'none'
     elif len(effects) == 1:
-        state, reason, lv = 'verified', 'Exactly one text was sent to the caller after the call', 'once'
+        state, reason, lv = 'verified', f"One confirmation naming {tok['label']} was sent ({'linked by ID' if link == 'id' else 'matched by content'})", 'once'
     elif len(effects) > 1:
-        state, reason, lv = 'verified', f'The promised text was sent {len(effects)} times', 'duplicate'
+        state, reason, lv = 'verified', f'The confirmation was sent {len(effects)} times', 'duplicate'
+    elif not tok and 'generic' in kinds:
+        state, reason, lv = 'unknown', 'A confirmation-style text was sent, but there is no booked time on this call to check it against', None
     else:
         lv = 'none'
         if final or prev == 'contradicted' or (stage == 'manual' and _past_final(db, f['id'])):
-            state, reason = 'contradicted', 'The agent promised a text confirmation and none was sent'
+            first = next((m for m, k in rows if k == 'other_appointment'), None) or next((m for m, k in rows if k == 'marketing'), None)
+            state, reason = 'contradicted', ('The confirmation text names a different time than the caller agreed' if 'other_appointment' in kinds else
+                                             f"Only a marketing text was sent (“{(first.get('body') or '')[:60]}…”); no confirmation for the appointment" if 'marketing' in kinds else
+                                             'A text went out, but it doesn’t name the appointment’s date and time' if 'generic' in kinds else
+                                             'The agent promised a text confirmation and none was sent')
         else:
-            state, reason = 'pending', 'No text yet; checking again later'
+            state, reason = 'pending', 'No confirmation yet; checking again later'
+    g = effects[0] if effects else None
+    late = state in ('contradicted', 'unknown')
+    stages = [evidence.stage('Confirmation written', 'done' if g else ('missing' if late else 'waiting'),
+                             f"{g.get('id')}, “{(g.get('body') or '')[:90]}” ({'linked by ID' if link == 'id' else 'matched by content'})" if g else ''),
+              evidence.stage('Names the right appointment', 'done' if g else ('missing' if late and rows else 'waiting'),
+                             f"expects {tok['label']}" if tok else 'no booked time on this call to check against'),
+              evidence.stage('Sent', 'done' if g and (g.get('status') or 'sent') != 'failed' else ('missing' if g else 'waiting')),
+              evidence.stage('Delivered', 'done' if g and g.get('status') == 'delivered' else ('missing' if g and g.get('status') == 'failed' else
+                             ('unknown' if g else 'waiting')), 'carrier delivery receipt' if g and g.get('status') == 'delivered' else
+                             ('no delivery receipt from the provider' if g else ''))]
     db.insert('observations', agency_id=f['agency_id'], finding_id=f['id'], appointment_id=None,
-              fields=dumps({'messages': effects[:10], 'linked_contacts': linked}), verdict=lv or 'error', reason=reason, stage=stage,
+              fields=dumps({'messages': effects[:10], 'linked_contacts': linked, 'stages': stages, 'ignored': ignored[:5], 'link': link}), verdict=lv or 'error', reason=reason, stage=stage,
               source='sandbox' if client['is_sandbox'] else 'highlevel', read_at=iso(now()))
     if lv:
         key = ledger.intent_key(call['retell_call_id'], 'sms', {'contact': p.get('contact_id'), 'phone': p.get('caller_phone')})
@@ -275,24 +303,51 @@ def check_callback(db: Database, f: dict, stage: str, actor: str = 'vaada') -> d
         tasks = [t for cid in linked for t in crm.tasks(cid)]
     except CRMError as e:
         return _finish(db, f, prev, 'unknown' if stage in ('final', 'manual') else 'pending', str(e), 'error', {}, stage, client, actor)
+    from . import evidence
     start = parse_iso(call['started_at'])
     tasks = [t for t in tasks if not t.get('created_at') or parse_iso(t['created_at']) >= start - timedelta(minutes=1)]
+    ids = evidence.tool_ids(loads(call['tool_calls'], []), r'task|callback') | set(p.get('recovery_ids') or [])
+    task, link, ignored = evidence.match_callback(tasks, ids)
+    calls_logged = []
+    if task:
+        try:
+            since = parse_iso(task['created_at']) if task.get('created_at') else start
+            for cid in linked:
+                calls_logged += [m for m in crm.messages(cid) if 'call' in (m.get('channel') or '') and (m.get('direction') or '').startswith('out')
+                                 and m.get('sent_at') and parse_iso(m['sent_at']) >= since - timedelta(minutes=1)]
+        except CRMError:
+            pass
+    reached = any(evidence.REACHED.search(m.get('body') or '') for m in calls_logged)
     due = parse_iso(p['due_at']) if p.get('due_at') else None
-    done = [t for t in tasks if t.get('completed')]
     late_stage = stage in ('60m', 'final', 'manual')
+    overdue = bool(due and now() > due)
+    miss = 'missing' if (overdue or late_stage) else 'waiting'
+    done = bool(task and task.get('completed'))
+    via = 'linked by the ID the workflow returned' if link == 'id' else 'matched by its title; the workflow gave no task ID'
+    stages = [evidence.stage('Task created', 'done' if task else miss, f"{task['id']}, “{task.get('title') or ''}” ({via})" if task else ''),
+              evidence.stage('Call attempt logged', 'done' if calls_logged else ('unproven' if done else (miss if task else 'waiting')),
+                             f'{len(calls_logged)} outbound call record(s)' if calls_logged else ('task ticked done, but no call is logged' if done else '')),
+              evidence.stage('Customer reached', 'done' if reached else ('unknown' if calls_logged else ('unproven' if done else 'waiting')),
+                             '' if reached or not calls_logged else 'the call record has no outcome'),
+              evidence.stage('Request resolved', 'done' if done and calls_logged else ('unproven' if done else (miss if task else 'waiting')))]
+    note = f" ({len(ignored)} other task(s) on this contact, e.g. “{ignored[0]['label']}”: {ignored[0]['why']})" if ignored else ''
     if not linked:
         state, reason, verdict = 'unknown', 'Could not identify the caller in the CRM, so the callback cannot be checked', 'identity'
+    elif done and calls_logged:
+        state, reason, verdict = 'verified', f"Callback task {task['id']} ({'linked by ID' if link == 'id' else 'matched by title'}) was completed and a call to the customer is logged", 'match'
     elif done:
-        state, reason, verdict = 'verified', f"Callback task “{done[0].get('title') or done[0]['id']}” was created and completed", 'match'
-    elif tasks:
-        if due and now() > due:
-            state, reason, verdict = 'contradicted', f"Callback task exists but is still open past its {p.get('sla_hours', 4)}h deadline", 'overdue'
+        state, reason, verdict = 'unknown', f"Task {task['id']} is ticked done, but no call to the customer is logged. A checkbox isn’t proof of a callback.", 'unproven'
+    elif task:
+        if overdue:
+            state, reason, verdict = 'contradicted', f"Callback task {task['id']} is still open past its {p.get('sla_hours', 4)}h deadline", 'overdue'
         else:
-            state, reason, verdict = 'pending', 'Callback task exists; waiting for it to be completed', 'open_task'
+            state, reason, verdict = 'pending', 'Callback task exists; waiting for the call', 'open_task'
     else:
-        state, reason, verdict = ('contradicted', 'The agent promised a callback but no callback task was created', 'missing') if late_stage \
+        state, reason, verdict = ('contradicted', 'The agent promised a callback but no task exists for it' + note, 'missing') if late_stage \
             else ('pending', 'No callback task yet; checking again later', 'missing')
-    fields = {'tasks': tasks[:10], 'linked_contacts': linked, 'due_at': p.get('due_at')}
+    tasks = [task] if task else []
+    fields = {'tasks': tasks[:10], 'linked_contacts': linked, 'due_at': p.get('due_at'), 'stages': stages, 'ignored': ignored[:5], 'link': link,
+              'calls_logged': [{k: m.get(k) for k in ('id', 'sent_at', 'body')} for m in calls_logged[:5]]}
     if len(tasks) > 1:
         ledger.append(db, f, kind='task', key=ledger.intent_key(call['retell_call_id'], 'callback', {'c': contact}),
                       expected={'count': 1}, effects=tasks, attempts=0, tool_reported='n/a', verdict='duplicate', note='', stage=stage)
