@@ -1,0 +1,39 @@
+{% extends "base.html" %}{% block title %}Clients{% endblock %}
+{% block main %}
+<div class="top"><div><div class="eyebrow">{{ rows|length }} client deployment{{ 's' if rows|length != 1 }}</div><h1>Clients</h1>
+<p class="lede">One row per business: the agent, the manifest in force, whether the running agent is the one that was approved, and how much of the traffic Vaada actually checked.</p></div>
+{% if u.role=='owner' %}<a class="btn" href="#add">Add client</a>{% endif %}</div>
+<div class="card flat" style="padding:4px 10px"><div class="tablewrap"><table>
+<thead><tr><th>Client</th><th>Manifest in force</th><th>Agent running vs approved</th><th>Connection</th><th>Coverage · 30d</th><th>Last call</th><th>Open</th></tr></thead>
+<tbody>
+{% for r in rows %}
+<tr class="click" data-href="/clients/{{ r.c.id }}">
+  <td><b>{{ r.c.name }}</b><div class="faint" style="font-size:12px">{{ r.c.location_label }}{% if r.c.is_sandbox %} · sandbox{% endif %}</div></td>
+  <td>{% if r.mv %}<span class="mono">v{{ r.mv.version }} · {{ r.mv.sha256|short(8) }}</span>{% else %}{{ pill('unbound','none approved') }}{% endif %}{% if r.draft %}<div style="margin-top:4px">{{ pill(r.draft.state, 'draft ' ~ r.draft.state) }}</div>{% endif %}</td>
+  <td>{% if r.mv %}<span class="mono">v{{ r.running or '?' }} / v{{ r.mv.approved_agent_version }}</span> {% if r.drift %}{{ pill('high','drift') }}{% else %}{{ pill('verified','match') }}{% endif %}{% else %}<span class="muted">—</span>{% endif %}</td>
+  <td>{{ pill(r.c.connection_status) }}</td>
+  <td>{% set cv = r.coverage %}<div style="min-width:120px"><div class="bar"><i style="width:{{ (100*cv[0]/cv[1])|round if cv[1] else 0 }}%"></i></div><div class="faint" style="font-size:12px;margin-top:4px">{{ cv[0] }} of {{ cv[1] }} calls checked</div></div></td>
+  <td class="muted">{{ r.last.received_at|ago if r.last else '—' }}</td>
+  <td>{% if r.open %}<b>{{ r.open }}</b>{% else %}<span class="faint">0</span>{% endif %}</td>
+</tr>
+{% else %}<tr><td colspan="7" class="empty"><h3>No clients yet</h3><p>Add the first business you run a Retell agent for.</p></td></tr>{% endfor %}
+</tbody></table></div></div>
+
+{% if u.role=='owner' %}
+<div class="card" id="add" style="margin-top:22px">
+  <h3>Add a client</h3><p class="muted">Vaada reads Retell call events and HighLevel calendars. Use a HighLevel token with read-only scopes (calendars.readonly, contacts.readonly, locations.readonly).</p>
+  <form method="post"><input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="grid g3">
+      <div><label>Business name</label><input type="text" name="name" required placeholder="Bright Smile Dental"></div>
+      <div><label>Location label</label><input type="text" name="location_label" placeholder="Austin, TX"></div>
+      <div><label>Business timezone (IANA)</label><input type="text" name="timezone" value="America/Chicago" required></div>
+      <div><label>Retell agent ID</label><input type="text" name="agent_id" required placeholder="agent_…"></div>
+      <div><label>HighLevel sub-account (location) ID</label><input type="text" name="hl_location_id" placeholder="loc_…"></div>
+      <div><label>Calendar IDs (comma separated)</label><input type="text" name="calendars" placeholder="cal_…"></div>
+    </div>
+    <label>HighLevel token for this sub-account (optional, stored encrypted)</label><input type="password" name="hl_token" autocomplete="off">
+    <div style="margin-top:16px"><button class="btn">Add client</button></div>
+  </form>
+</div>
+{% endif %}
+{% endblock %}

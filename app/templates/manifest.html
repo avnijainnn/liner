@@ -1,0 +1,138 @@
+{% extends "base.html" %}{% block title %}Manifest · {{ c.name }}{% endblock %}
+{% block main %}
+<div class="crumbs"><a href="/clients">Clients</a> / <a href="/clients/{{ c.id }}">{{ c.name }}</a> / manifest</div>
+<div class="top">
+  <div><div class="eyebrow">What {{ c.name }}’s agent may do, ask and promise</div>
+  {% if current %}<h1>Manifest v{{ current.version }}</h1>
+  <p class="lede">In force since {{ current.effective_from|localtime(c.timezone, '%d %b %Y, %-I:%M %p') }} · approved by {{ current.approval.approver_name }} ({{ 'client' if current.approval.role=='client' else 'agency on the client’s behalf' }}) · bound to agent v{{ current.approved_agent_version }}</p>
+  {% else %}<h1>No manifest in force</h1><p class="lede">Until a version is approved, calls for this client are recorded with coverage “unknown”. Vaada never falls back to a draft.</p>{% endif %}</div>
+  <div class="row">
+    {% if current %}<form method="post" action="/clients/{{ c.id }}/trials" class="row"><input type="hidden" name="csrf" value="{{ csrf }}"><select name="runs" style="width:auto"><option value="2">2 runs</option><option value="3" selected>3 runs</option></select><button class="btn green">Run trial</button></form>{% endif %}
+    <a class="btn ghost" href="/clients/{{ c.id }}/integrity">Integrity</a>
+  </div>
+</div>
+
+{% if link %}<div class="ev" style="margin-bottom:16px"><div class="k">Approval link · send to the business owner</div><div class="row between" style="margin-top:6px"><div class="v ok">{{ link }}</div><button class="btn sm" data-copy="{{ link }}">Copy</button></div><p style="color:var(--ev-muted);margin-top:8px;font-size:12px">Valid 14 days. Editing the draft voids it. The page shows the exact hash they approve.</p></div>{% endif %}
+
+<div class="split">
+  <div class="stack">
+    {% if body %}
+    <div class="card">
+      <div class="row between"><h3>Rules in force</h3><span class="mono faint">{{ current.sha256|short(16) }}…</span></div>
+      <div class="grid g2" style="margin-top:6px">
+        <div><div class="eyebrow">May do</div><div class="checks">{% for a in body.allowed_actions %}<span class="pill s-client plain">{{ a }}</span>{% endfor %}</div></div>
+        <div><div class="eyebrow">Can actually deliver</div><div class="checks">{% for a in body.deliverable_promises %}<span class="pill s-client plain">{{ PROMISE_CLASSES[a] }}</span>{% else %}<span class="muted">nothing promised</span>{% endfor %}</div></div>
+        <div><div class="eyebrow">Never promise</div><div class="checks">{% for a in body.never_promise %}<span class="pill s-high plain">{{ PROMISE_CLASSES[a] }}</span>{% endfor %}</div></div>
+        <div><div class="eyebrow">Never ask for</div><div class="checks">{% for a in body.never_ask %}<span class="pill s-high plain">{{ ASK_CLASSES[a] }}</span>{% endfor %}</div></div>
+        <div><div class="eyebrow">Handoff</div>{% set h = body.handoff or {} %}<p>{% if h.on == 'never' %}Never transfer{% else %}Transfer to <b>{{ (h.to or 'front desk')|replace('_',' ') }}</b> when the caller asks for a person{% if h.hours=='business' %}, during business hours{% endif %}{% endif %}</p></div>
+        {% set fx = body.facts or {} %}
+        <div style="grid-column:1/-1"><div class="eyebrow">Approved facts</div><p>{% for k, v in (fx.prices or {}).items() %}{{ k|capitalize }} ${{ v }} · {% endfor %}{% if fx.refund_window_days is not none %}refunds within {{ fx.refund_window_days }} days · {% endif %}{% if fx.cancellation_notice_hours is not none %}{{ fx.cancellation_notice_hours }}h cancellation notice · {% endif %}{% if fx.cancellation_fee is not none %}${{ fx.cancellation_fee }} late-cancel fee · {% endif %}{% if fx.accepts_insurance is not none %}{{ 'accepts' if fx.accepts_insurance else 'does not accept' }} insurance{% endif %}{% if not (fx.prices or fx.refund_window_days is not none or fx.cancellation_notice_hours is not none) %}<span class="muted">None yet: Vaada can’t flag wrong answers until you add them.</span>{% endif %}</p></div>
+        {% set br = body.booking_rules or {} %}
+        <div style="grid-column:1/-1"><div class="eyebrow">Business rules</div><p>{% if br.within_business_hours %}Bookings inside business hours · {% endif %}{% if br.min_notice_hours %}{{ br.min_notice_hours }}h minimum notice · {% endif %}{% if br.max_days_ahead %}up to {{ br.max_days_ahead }} days ahead · {% endif %}{% if br.excluded_services %}never book {{ br.excluded_services|join(', ') }} · {% endif %}{% for e in body.escalations or [] %}“{{ e.trigger }}” → {{ e.to|replace('_',' ') }} · {% endfor %}callbacks within {{ body.callback_sla_hours or 4 }}h</p></div>
+        <div><div class="eyebrow">Calendar checks</div><p>{{ body.record.calendars|join(', ') or '—' }} · reads at {{ body.check_timing.reads_min|join(' / ') }} min</p></div>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="card" id="draft">
+      {% if draft %}
+      <div class="row between"><h3>Draft v{{ pending.version }} <span class="muted" style="font:400 14px var(--sans)">· {{ draft.source }}</span></h3>{{ pill(draft.state, 'sent to ' ~ draft.sent_to if draft.state=='sent' else 'draft — not active') }}</div>
+      {% if diff %}<div class="ev" style="margin:6px 0 16px;padding:14px"><div class="k">Changes vs v{{ current.version if current else '—' }}</div>
+        {% for d in diff %}<div style="margin-top:6px;font-size:13px"><span class="mono" style="color:var(--ev-muted)">{{ d.field }}</span>&nbsp;
+          {% if d.added is defined %}{% for x in d.added %}<span class="ok">+{{ x }}</span> {% endfor %}{% for x in d.removed %}<span class="bad">−{{ x }}</span> {% endfor %}{% else %}<span class="ok">changed</span>{% endif %}</div>{% endfor %}</div>{% endif %}
+      {% if u.role != 'viewer' %}
+      <form method="post" action="/drafts/{{ draft.id }}/save"><input type="hidden" name="csrf" value="{{ csrf }}">
+        <label>Allowed actions</label><div class="checks">{% for a in ACTIONS %}<label class="chk"><input type="checkbox" name="allowed_actions" value="{{ a }}" {{ 'checked' if a in dpol.allowed_actions }}>{{ a }}</label>{% endfor %}</div>
+        <label>Promises this setup can actually deliver</label><div class="checks">{% for k in DELIVERABLE_TYPES %}<label class="chk"><input type="checkbox" name="deliverable_promises" value="{{ k }}" {{ 'checked' if k in dpol.deliverable_promises }}>{{ PROMISE_CLASSES[k] }}</label>{% endfor %}</div>
+        <label>Never promise</label><div class="checks">{% for k, v in PROMISE_CLASSES.items() %}<label class="chk no"><input type="checkbox" name="never_promise" value="{{ k }}" {{ 'checked' if k in dpol.never_promise }}>{{ v }}</label>{% endfor %}</div>
+        <label>Never ask for</label><div class="checks">{% for k, v in ASK_CLASSES.items() %}<label class="chk no"><input type="checkbox" name="never_ask" value="{{ k }}" {{ 'checked' if k in dpol.never_ask }}>{{ v }}</label>{% endfor %}</div>
+        <div class="grid g3">
+          <div><label>Handoff when</label><select name="handoff_on">{% for k, t in [('caller_requests_person','Caller asks for a person'),('always_on_request','Any request, any time'),('never','Never transfer')] %}<option value="{{ k }}" {{ 'selected' if (dpol.handoff or {}).on==k }}>{{ t }}</option>{% endfor %}</select></div>
+          <div><label>Transfer to</label><input type="text" name="handoff_to" value="{{ (dpol.handoff or {}).to or 'front_desk' }}"></div>
+          <div><label>Hours</label><select name="handoff_hours"><option value="business" {{ 'selected' if (dpol.handoff or {}).hours=='business' }}>Business hours</option><option value="always" {{ 'selected' if (dpol.handoff or {}).hours=='always' }}>Always</option></select></div>
+        </div>
+        <label>Business hours ({{ c.timezone }})</label>
+        <div class="grid g4" style="gap:8px">{% for d in DAYS %}{% set w = dpol.business_hours[d] %}
+          <div class="row" style="gap:6px;font-size:13px"><label class="chk" style="margin:0"><input type="checkbox" name="open_{{ d }}" value="1" {{ 'checked' if w }}>{{ d|capitalize }}</label>
+          <input type="text" name="from_{{ d }}" value="{{ w[0] if w else '08:00' }}" style="width:62px;padding:6px"> <input type="text" name="to_{{ d }}" value="{{ w[1] if w else '17:00' }}" style="width:62px;padding:6px"></div>{% endfor %}</div>
+        {% set br = dpol.booking_rules or {} %}
+        <div class="eyebrow" style="margin-top:20px">Business rules for bookings and escalations</div>
+        <div class="grid g3">
+          <div><label class="chk" style="margin-top:28px"><input type="checkbox" name="within_business_hours" value="1" {{ 'checked' if br.within_business_hours }}>Only book inside business hours</label></div>
+          <div><label>Minimum notice (hours)</label><input type="text" name="min_notice_hours" value="{{ br.min_notice_hours if br.min_notice_hours is not none else '' }}"></div>
+          <div><label>Book at most (days ahead)</label><input type="text" name="max_days_ahead" value="{{ br.max_days_ahead if br.max_days_ahead is not none else '' }}"></div>
+          <div><label>Services the agent must never book (comma separated)</label><input type="text" name="excluded_services" value="{{ (br.excluded_services or [])|join(', ') }}"></div>
+          <div><label>Escalations (one per line: phrase =&gt; transfer to)</label><textarea name="escalations" style="min-height:64px">{% for e in dpol.escalations or [] %}{{ e.trigger }} => {{ e.to }}
+{% endfor %}</textarea></div>
+          <div><label>Promised callbacks completed within (hours)</label><input type="text" name="callback_sla_hours" value="{{ dpol.callback_sla_hours or 4 }}"></div>
+        </div>
+        <div class="eyebrow" style="margin-top:20px">Business facts the agent may state</div>
+        <p class="muted" style="font-size:13px">Vaada flags any agent claim that contradicts these. Leave a field empty and Vaada won’t judge claims about it.</p>
+        {% set fx = dpol.facts or {} %}
+        <div class="grid g2">
+          <div><label>Prices (one per line: service=amount)</label><textarea name="prices" style="min-height:84px">{% for k, v in (fx.prices or {}).items() %}{{ k }}={{ v }}
+{% endfor %}</textarea></div>
+          <div class="grid g2" style="gap:8px">
+            <div><label>Refund window (days)</label><input type="text" name="refund_window_days" value="{{ fx.refund_window_days if fx.refund_window_days is not none else '' }}"></div>
+            <div><label>Cancellation notice (hours)</label><input type="text" name="cancellation_notice_hours" value="{{ fx.cancellation_notice_hours if fx.cancellation_notice_hours is not none else '' }}"></div>
+            <div><label>Late-cancellation fee ($)</label><input type="text" name="cancellation_fee" value="{{ fx.cancellation_fee if fx.cancellation_fee is not none else '' }}"></div>
+            <div><label>Accepts insurance</label><select name="accepts_insurance"><option value="" {{ 'selected' if fx.accepts_insurance is none }}>Not stated</option><option value="yes" {{ 'selected' if fx.accepts_insurance == true }}>Yes</option><option value="no" {{ 'selected' if fx.accepts_insurance == false }}>No</option></select></div>
+          </div>
+        </div>
+        <label>Calendar reads after call end (minutes)</label><input type="text" name="reads" value="{{ dpol.check_timing.reads_min|join(',') }}" style="max-width:200px">
+        <div class="row" style="margin-top:16px"><button class="btn ghost">Save draft</button></div>
+      </form>
+      <div class="sep"></div>
+      <div class="grid g2">
+        <form method="post" action="/drafts/{{ draft.id }}/send"><input type="hidden" name="csrf" value="{{ csrf }}">
+          <div class="eyebrow">Ask the business to approve</div><input type="text" name="to" placeholder="owner@clinic.com or name" required><button class="btn" style="margin-top:10px">Create approval link</button></form>
+        <form method="post" action="/drafts/{{ draft.id }}/approve"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="sha" value="{{ pending_sha }}">
+          <div class="eyebrow">Or approve on the client’s behalf</div>
+          <div class="row"><input type="text" name="approver" value="{{ u.name }}" style="flex:1"><input type="text" name="agent_version" value="{{ pending.agent.approved_agent_version }}" title="Agent version this approval binds to" style="width:80px"></div>
+          <label class="chk" style="margin-top:8px"><input type="checkbox" name="confirm" value="yes">Reports will say the agency approved this</label>
+          <button class="btn ghost" style="margin-top:10px">Approve as agency</button></form>
+      </div>
+      <form method="post" action="/drafts/{{ draft.id }}/discard" style="margin-top:14px"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn danger sm">Discard draft</button></form>
+      {% endif %}
+      <p class="faint mono" style="margin-top:12px;font-size:11.5px">pending sha-256 {{ pending_sha }}</p>
+      {% else %}
+      <h3>Change the rules</h3>
+      <p class="muted">Every change is a new version: hashed, chained to the previous one, signed with your agency key, and only active once approved.</p>
+      {% if notes %}<ul style="color:var(--muted);font-size:13.5px;padding-left:18px">{% for n in notes %}<li>{{ n }}</li>{% endfor %}</ul>{% endif %}
+      {% if u.role != 'viewer' %}<div class="row" style="margin-top:12px">
+        <form method="post" action="/clients/{{ c.id }}/drafts" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="source" value="auto"><button class="btn">Auto-draft from Retell + HighLevel</button></form>
+        {% if current %}<form method="post" action="/clients/{{ c.id }}/drafts" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="source" value="copy"><button class="btn ghost">Edit a copy of v{{ current.version }}</button></form>{% endif %}
+      </div>{% endif %}
+      {% endif %}
+    </div>
+
+    {% if guardrails %}
+    <div class="card"><div class="row between"><h3>Prompt guardrails</h3><button class="btn ghost sm" data-copy="{{ guardrails }}">Copy</button></div>
+      <p class="muted">The manifest as rules to paste into the Retell prompt. Re-run a trial after pasting.</p>
+      <pre class="mono" style="white-space:pre-wrap;background:var(--surface-2);padding:14px;border-radius:10px;margin-top:10px">{{ guardrails }}</pre></div>
+    {% endif %}
+  </div>
+
+  <div class="stack">
+    <div class="ev">
+      <div class="k">Version chain</div>
+      {% for v in vs %}
+      <div style="border-top:1px solid var(--ev-line);margin-top:14px;padding-top:14px">
+        <div class="row between"><b style="font-family:var(--serif);font-size:20px;font-weight:400">v{{ v.version }}</b><span class="{{ 'ok' if not v.effective_to else '' }}" style="font-size:12px;color:{{ 'var(--ev-accent)' if not v.effective_to else 'var(--ev-muted)' }}">{{ 'in force' if not v.effective_to else 'closed' }}</span></div>
+        <div class="kv" style="margin-top:8px">
+          <div><div class="k">effective</div><div class="v">{{ v.effective_from|localtime(c.timezone, '%d %b %-I:%M %p') }} → {{ v.effective_to|localtime(c.timezone, '%d %b %-I:%M %p') if v.effective_to else 'now' }}</div></div>
+          <div><div class="k">approved by</div><div class="v">{{ v.approval.approver_name }} · {{ v.approval.role }}</div></div>
+          <div><div class="k">agent</div><div class="v">v{{ v.approved_agent_version }}{% if v.agent_fingerprint %} · fp {{ v.agent_fingerprint|short(8) }}{% endif %}</div></div>
+          <div><div class="k">calls judged</div><div class="v">{{ v.calls }}</div></div>
+        </div>
+        <div class="kv one"><div><div class="k">sha-256 · prev</div><div class="v">{{ v.sha256 }}</div><div class="v" style="color:var(--ev-muted)">← {{ v.prev_hash or 'genesis' }}</div></div>
+        <div><div class="k">signature · {{ v.envelope.key_id }}</div><div class="v" style="color:var(--ev-muted)">{{ v.envelope.signature[:44] }}…</div></div></div>
+        {% if not loop.last %}<a href="/clients/{{ c.id }}/compare?a={{ vs[loop.index].version }}&b={{ v.version }}" style="font-size:12px">Compare with v{{ vs[loop.index].version }}</a>{% endif %}
+      </div>
+      {% else %}<p style="color:var(--ev-muted);margin-top:10px">No approved versions yet.</p>{% endfor %}
+    </div>
+    {% if trials %}<div class="card"><h3>Recent trials</h3>{% for t in trials %}{% set s = t.summary|j({}) %}
+      <a class="row between" href="/trials/{{ t.id }}" style="padding:8px 0;border-top:1px solid var(--line)"><span>#{{ t.id }} · agent v{{ t.agent_version }}</span><span>{% if s.scenarios %}<b>{{ s.passed }}/{{ s.scenarios }}</b> passed{% else %}{{ pill(t.status) }}{% endif %}</span></a>{% endfor %}</div>{% endif %}
+  </div>
+</div>
+{% endblock %}

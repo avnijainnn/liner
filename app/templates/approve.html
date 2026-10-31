@@ -1,0 +1,39 @@
+{% extends "base.html" %}{% block title %}Approve your phone agent’s rules{% endblock %}
+{% block shell %}
+<main style="max-width:760px;margin:0 auto;padding:48px 20px 80px">
+  <div class="brand" style="padding:0 0 24px"><span class="w">vaada</span><span class="d" lang="hi">वादा</span></div>
+  {% if gone %}
+    <h1>This link has expired or been replaced.</h1><p class="lede">Ask your agency to send a fresh approval link.</p>
+  {% elif done %}
+    <h1>Approved. Thank you.</h1>
+    <p class="lede">Version {{ done.version }} of {{ c.name }}’s rules is now in force. Every call from now on is checked against it.</p>
+    <div class="ev" style="margin-top:22px"><div class="k">What you approved</div><div class="v ok" style="margin-top:6px">sha-256 {{ done.sha256 }}</div><p style="color:var(--ev-muted);margin-top:10px;font-size:12.5px">Keep this fingerprint. If the rules ever change, the fingerprint changes too, and a new approval is needed.</p></div>
+  {% else %}
+    <div class="eyebrow">{{ agency.name }} is asking you to approve</div>
+    <h1>What your AI receptionist at {{ c.name }} may say and do</h1>
+    <p class="lede">Read the list below. If it matches how you want calls handled, approve it. Your agency can only change these rules with a new approval.</p>
+    {% if error %}<div class="flash err" style="margin-top:16px">{{ error }}</div>{% endif %}
+    <div class="card" style="margin-top:24px">
+      <div class="grid g2">
+        <div><div class="eyebrow">It may</div><p>{{ body.allowed_actions|join(', ') }} appointments</p></div>
+        <div><div class="eyebrow">It may promise</div><p>{% for a in body.deliverable_promises %}{{ PROMISE_CLASSES[a] }}{{ ', ' if not loop.last }}{% else %}Nothing beyond the booking itself{% endfor %}</p></div>
+        <div><div class="eyebrow">It must never promise</div><p>{% for a in body.never_promise %}{{ PROMISE_CLASSES[a] }}{{ ', ' if not loop.last }}{% endfor %}</p></div>
+        <div><div class="eyebrow">It must never ask for</div><p>{% for a in body.never_ask %}{{ ASK_CLASSES[a] }}{{ ', ' if not loop.last }}{% endfor %}</p></div>
+        <div><div class="eyebrow">If a caller asks for a person</div><p>{% set h = body.handoff or {} %}{% if h.on=='never' %}It will not transfer{% else %}Transfer to {{ (h.to or 'front desk')|replace('_',' ') }}{% if h.hours=='business' %} during business hours{% endif %}{% endif %}</p></div>
+        {% set fx = body.facts or {} %}
+        <div><div class="eyebrow">Facts it may state</div><p style="font-size:13.5px">{% for k, v in (fx.prices or {}).items() %}{{ k|capitalize }} costs ${{ v }}. {% endfor %}{% if fx.refund_window_days is not none %}Refunds within {{ fx.refund_window_days }} days. {% endif %}{% if fx.cancellation_notice_hours is not none %}Cancel with {{ fx.cancellation_notice_hours }} hours notice. {% endif %}{% if fx.cancellation_fee is not none %}Late-cancellation fee ${{ fx.cancellation_fee }}. {% endif %}{% if fx.accepts_insurance is not none %}{{ 'We accept insurance.' if fx.accepts_insurance else 'We do not accept insurance.' }}{% endif %}</p></div>
+        {% set br = body.booking_rules or {} %}
+        <div><div class="eyebrow">Booking and escalation rules</div><p style="font-size:13.5px">{% if br.within_business_hours %}Only books inside business hours. {% endif %}{% if br.min_notice_hours %}Needs {{ br.min_notice_hours }} hours notice. {% endif %}{% if br.excluded_services %}Never books {{ br.excluded_services|join(', ') }}. {% endif %}{% for e in body.escalations or [] %}“{{ e.trigger }}” goes straight to {{ e.to|replace('_',' ') }}. {% endfor %}Promised callbacks happen within {{ body.callback_sla_hours or 4 }} hours.</p></div>
+        <div><div class="eyebrow">Business hours</div><p style="font-size:13.5px">{% set open_days = DAYS|select('in', body.business_hours|dictsort|selectattr(1)|map(attribute=0)|list)|list %}{% for d in open_days %}{{ d|capitalize }} {{ body.business_hours[d]|join('–') }}{{ ' · ' if not loop.last }}{% endfor %}</p></div>
+      </div>
+      {% if diff and prev %}<div class="sep"></div><div class="eyebrow">Changed since version {{ prev.version }}</div>
+      {% for d in diff %}<p style="font-size:13.5px">{{ d.field|replace('_',' ') }}: {% if d.added is defined %}{% for x in d.added %}<span class="diff-add">+{{ x }}</span> {% endfor %}{% for x in d.removed %}<span class="diff-del">{{ x }}</span> {% endfor %}{% else %}updated{% endif %}</p>{% endfor %}{% endif %}
+    </div>
+    <form method="post" class="card" style="margin-top:16px"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="sha" value="{{ sha }}">
+      <div class="grid g2"><div><label>Your name</label><input type="text" name="name" required></div><div><label>Email</label><input type="email" name="email"></div></div>
+      <label class="chk" style="margin-top:14px"><input type="checkbox" name="agree" value="yes" required>I approve version {{ body.version }} of these rules for {{ c.name }}</label>
+      <div class="row" style="margin-top:16px"><button class="btn green">Approve</button><span class="faint mono" style="font-size:11px">fingerprint {{ sha[:24] }}…</span></div>
+    </form>
+  {% endif %}
+</main>
+{% endblock %}

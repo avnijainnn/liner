@@ -1,0 +1,20 @@
+{% extends "base.html" %}{% block title %}Integrity · {{ c.name }}{% endblock %}
+{% block main %}
+<div class="crumbs"><a href="/clients/{{ c.id }}/manifest">{{ c.name }} manifest</a> / integrity</div>
+<div class="top"><div><div class="eyebrow">IWCB integrity check</div>
+<h1>{% if r.ok %}Chain intact. Every binding re-derives.{% else %}{{ r.issues|length }} problem{{ 's' if r.issues|length != 1 }} found{% endif %}</h1>
+<p class="lede">Vaada recomputes each manifest hash, follows the prev-hash links, verifies every Ed25519 signature and approval, walks the binding-receipt chain, and re-derives which version every call should have been judged by. A version inserted or back-dated after the fact shows up here.</p></div></div>
+<div class="grid g4">
+  <div class="card stat"><div class="n">{{ r.versions }}</div><div class="l">Manifest versions checked</div></div>
+  <div class="card stat"><div class="n">{{ r.receipts }}</div><div class="l">Binding receipts walked</div></div>
+  <div class="card stat"><div class="n">{{ r.rederived_ok }}<small>/ {{ r.receipts }}</small></div><div class="l">Bindings re-derived identically</div></div>
+  <div class="card stat"><div class="n">{{ r.issues|length }}</div><div class="l">Issues</div></div>
+</div>
+{% if r.issues %}<div class="card" style="margin-top:16px">{% for i in r.issues %}<p style="padding:8px 0;border-top:1px solid var(--line)">{{ pill('fail','issue') }} {{ i }}</p>{% endfor %}</div>{% endif %}
+<div class="grid g2" style="margin-top:16px">
+  <div class="ev"><div class="k">Heads</div><div class="kv one"><div><div class="k">manifest chain head</div><div class="v ok">{{ r.head or '—' }}</div></div><div><div class="k">receipt chain head</div><div class="v ok">{{ r.receipt_head or '—' }}</div></div></div></div>
+  <div class="ev"><div class="k">Daily Merkle roots of binding receipts</div>
+    {% for d in r.roots %}<div class="kv" style="grid-template-columns:110px 1fr;margin-top:10px"><div class="v" style="color:var(--ev-muted)">{{ d.day }} · {{ d.count }}</div><div class="v">{{ d.root }}</div></div>{% else %}<p style="color:var(--ev-muted)">No calls bound yet.</p>{% endfor %}</div>
+</div>
+<p class="muted" style="margin-top:16px;font-size:13px">What this proves: tamper evidence inside Vaada’s own system. It does not make history independently verifiable, because whoever controls Vaada’s key and database could rewrite both. Publishing the daily roots to an append-only public log is the v3 step that changes that.</p>
+{% endblock %}

@@ -1,0 +1,15 @@
+{% extends "base.html" %}{% block title %}Compare versions{% endblock %}
+{% block main %}
+<div class="crumbs"><a href="/clients/{{ c.id }}/manifest">{{ c.name }} manifest</a> / compare</div>
+<h1>v{{ va.version }} → v{{ vb.version }}</h1>
+<div class="card" style="margin-top:20px">
+{% for d in diff %}<div style="padding:10px 0;border-top:1px solid var(--line)"><b class="mono">{{ d.field }}</b>
+  {% if d.added is defined %}<div>{% for x in d.added %}<span class="pill s-verified plain">+ {{ x }}</span> {% endfor %}{% for x in d.removed %}<span class="pill s-contradicted plain">− {{ x }}</span> {% endfor %}</div>
+  {% else %}<pre class="mono" style="white-space:pre-wrap;font-size:12px">{{ d['from']|tojson }}  →  {{ d['to']|tojson }}</pre>{% endif %}</div>
+{% else %}<p class="muted">No policy differences.</p>{% endfor %}
+</div>
+<div class="grid g2" style="margin-top:16px">
+  <div class="ev"><div class="k">v{{ va.version }} · {{ va.sha256|short(16) }}</div><pre>{{ va.body|j|tojson_pretty }}</pre></div>
+  <div class="ev"><div class="k">v{{ vb.version }} · {{ vb.sha256|short(16) }}</div><pre>{{ vb.body|j|tojson_pretty }}</pre></div>
+</div>
+{% endblock %}

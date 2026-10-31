@@ -1,0 +1,19 @@
+{% extends "base.html" %}{% block title %}Report · {{ c.name }}{% endblock %}
+{% block main %}
+<div class="crumbs"><a href="/clients/{{ c.id }}">{{ c.name }}</a> / report</div>
+<div class="top"><div><div class="eyebrow">Client report · last {{ days }} days</div>
+<h1>What {{ c.name }}’s agent did, against what they approved.</h1></div>
+<div class="row"><form method="get" class="row"><select name="days" style="width:auto" onchange="this.form.submit()">{% for d in [7,30,90] %}<option value="{{ d }}" {{ 'selected' if d==days }}>{{ d }} days</option>{% endfor %}</select></form>
+<a class="btn" href="/reports/{{ c.id }}/pdf?days={{ days }}">Export PDF</a></div></div>
+<div class="grid g4">
+  <div class="card stat"><div class="n">{{ r.calls_checked }}<small>/ {{ r.calls }}</small></div><div class="l">Calls checked</div><div class="d">{{ r.calls_no_transcript }} no usable transcript · {{ r.calls_unbound }} no approved manifest</div></div>
+  <div class="card stat"><div class="n">{{ r.bookings_verified }}<small>/ {{ r.bookings_checkable }}</small></div><div class="l">Checkable bookings verified</div><div class="d">{{ r.bookings_contradicted }} wrong · {{ r.bookings_unknown }} unknown · {{ r.bookings_pending }} checking</div></div>
+  <div class="card stat"><div class="n">{{ r.violations_confirmed }}<small>/ {{ r.violations_flagged }}</small></div><div class="l">Rule violations confirmed</div><div class="d">{{ r.violations_dismissed }} dismissed · {{ r.violations_open }} awaiting review</div></div>
+  <div class="card stat"><div class="n">{{ r.cases_fixed }}<small>/ {{ r.cases }}</small></div><div class="l">Cases fixed and re-verified</div><div class="d">{{ r.cases_open }} still open</div></div>
+</div>
+<div class="card" style="margin-top:16px"><h3>By manifest version</h3><div class="tablewrap"><table>
+<thead><tr><th>Version</th><th>Approved by</th><th>Agent</th><th>Calls</th><th>Bookings verified</th><th>Violations confirmed</th><th>Hash</th></tr></thead>
+<tbody>{% for v in r.by_version %}<tr><td><b>v{{ v.version }}</b></td><td>{{ v.approver }} {{ pill(v.role, 'client' if v.role=='client' else 'agency on behalf') }}<div class="faint" style="font-size:12px">{{ v.approved_at|localtime(c.timezone, '%d %b %Y') }}</div></td><td class="mono">v{{ v.agent_version }}</td><td>{{ v.calls }}</td><td>{{ v.bookings_verified }} / {{ v.bookings }}</td><td>{{ v.violations_confirmed }}</td><td class="mono faint">{{ v.sha256|short(12) }}</td></tr>{% endfor %}</tbody></table></div></div>
+{% if r.confirmed_violations %}<div class="card"><h3>Confirmed violations</h3>{% for f in r.confirmed_violations %}<a href="/findings/{{ f.id }}" style="display:block;padding:10px 0;border-top:1px solid var(--line)"><b>{{ f.type|title }}</b> <span class="muted">· v{{ f.manifest_version }}</span><div class="muted">“{{ (f.span|j({})).quote }}”</div></a>{% endfor %}</div>{% endif %}
+<p class="muted" style="margin-top:16px;font-size:13px">Unknown never counts as verified. Hashes and approvals are tamper evidence inside Vaada, not an independently auditable public log.</p>
+{% endblock %}

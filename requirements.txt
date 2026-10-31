@@ -10,5 +10,5 @@ python-dotenv>=1.0
 tzdata>=2024.1
 # production database
 psycopg[binary]>=3.2
-# optional: official Retell webhook verifier (Lane falls back to an identical HMAC check)
+# optional: official Retell webhook verifier (Vaada falls back to an identical HMAC check)
 retell-sdk>=4.0

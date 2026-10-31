@@ -1,0 +1,194 @@
+{
+  "label": "SYNTHETIC - two fictional agency clients and controlled calendar records",
+  "clients": [
+    {
+      "key": "bright",
+      "name": "Bright Smile Dental (SYNTHETIC)",
+      "agent_id": "agent_world_bright",
+      "location": "loc_world_bright",
+      "calendar": "cal_world_bright",
+      "timezone": "America/Chicago",
+      "policy": {
+        "approved_agent_version": "14",
+        "allowed_actions": [
+          "book"
+        ],
+        "never_ask": [
+          "card_number",
+          "otp"
+        ],
+        "never_promise": [
+          "discount",
+          "refund"
+        ],
+        "deliverable_promises": [
+          "sms_confirmation"
+        ],
+        "handoff": {
+          "on": "caller_requests_person",
+          "to": "front_desk",
+          "hours": "business"
+        }
+      }
+    },
+    {
+      "key": "harbor",
+      "name": "Harbor Wellness (SYNTHETIC)",
+      "agent_id": "agent_world_harbor",
+      "location": "loc_world_harbor",
+      "calendar": "cal_world_harbor",
+      "timezone": "America/Chicago",
+      "policy": {
+        "approved_agent_version": "21",
+        "allowed_actions": [
+          "book"
+        ],
+        "never_ask": [
+          "password",
+          "otp"
+        ],
+        "never_promise": [
+          "guarantee"
+        ],
+        "deliverable_promises": [
+          "sms_confirmation"
+        ]
+      }
+    },
+    {
+      "key": "cedar",
+      "name": "Cedar Repairs (SYNTHETIC)",
+      "agent_id": "agent_world_cedar",
+      "location": "loc_world_cedar",
+      "calendar": "cal_world_cedar",
+      "timezone": "America/Chicago",
+      "policy": {
+        "approved_agent_version": "7",
+        "allowed_actions": [
+          "reschedule"
+        ],
+        "never_ask": [
+          "otp"
+        ],
+        "never_promise": [
+          "discount"
+        ],
+        "deliverable_promises": []
+      }
+    }
+  ],
+  "calls": [
+    {
+      "id": "world_wrong_time",
+      "client": "bright",
+      "agent_version": "14",
+      "contact": "contact_world_a",
+      "appointment": "evt_world_a",
+      "transcript": "Caller: Please book November 4, 2026 at 9 AM. Actually not 9, make it 10 AM.\nAgent: You are booked on November 4 at 10 AM.",
+      "timeline": [
+        {
+          "minute": 2,
+          "record": {
+            "startTime": "2026-11-04T09:00:00-06:00",
+            "status": "booked"
+          }
+        },
+        {
+          "minute": 15,
+          "record": {
+            "startTime": "2026-11-04T09:00:00-06:00",
+            "status": "booked"
+          }
+        },
+        {
+          "minute": 60,
+          "record": {
+            "startTime": "2026-11-04T09:00:00-06:00",
+            "status": "booked"
+          }
+        }
+      ]
+    },
+    {
+      "id": "world_correct_booking",
+      "client": "bright",
+      "agent_version": "14",
+      "contact": "contact_world_b",
+      "appointment": "evt_world_b",
+      "transcript": "Caller: Please book November 4, 2026 at 2 PM.\nAgent: Your appointment is booked for November 4 at 2 PM.",
+      "timeline": [
+        {
+          "minute": 2,
+          "record": {
+            "startTime": "2026-11-04T14:00:00-06:00",
+            "status": "booked"
+          }
+        }
+      ]
+    },
+    {
+      "id": "world_delayed_write",
+      "client": "harbor",
+      "agent_version": "21",
+      "contact": "contact_world_c",
+      "appointment": "evt_world_c",
+      "transcript": "Caller: Please book November 5, 2026 at 3 PM.\nAgent: Booked for November 5 at 3 PM.",
+      "timeline": [
+        {
+          "minute": 2,
+          "record": null
+        },
+        {
+          "minute": 15,
+          "record": {
+            "startTime": "2026-11-05T15:00:00-06:00",
+            "status": "booked"
+          }
+        }
+      ]
+    },
+    {
+      "id": "world_agent_drift",
+      "client": "bright",
+      "agent_version": "15",
+      "contact": "contact_world_d",
+      "appointment": "evt_world_d",
+      "transcript": "Caller: Please book November 5, 2026 at 11 AM.\nAgent: You're booked on November 5 at 11 AM.",
+      "timeline": [
+        {
+          "minute": 2,
+          "record": {
+            "startTime": "2026-11-05T11:00:00-06:00",
+            "status": "booked"
+          }
+        }
+      ]
+    },
+    {
+      "id": "world_availability_only",
+      "client": "harbor",
+      "agent_version": "21",
+      "contact": "contact_world_e",
+      "appointment": "evt_world_e",
+      "transcript": "Caller: Is November 6 at 10 AM available?\nAgent: Yes, but I have not booked it.\nCaller: I will think about it.",
+      "timeline": []
+    },
+    {
+      "id": "world_unauthorized_booking",
+      "client": "cedar",
+      "agent_version": "7",
+      "contact": "contact_world_f",
+      "appointment": "evt_world_f",
+      "transcript": "Caller: Please book November 6, 2026 at 11 AM.\nAgent: You are booked for November 6 at 11 AM.",
+      "timeline": [
+        {
+          "minute": 2,
+          "record": {
+            "startTime": "2026-11-06T11:00:00-06:00",
+            "status": "booked"
+          }
+        }
+      ]
+    }
+  ]
+}

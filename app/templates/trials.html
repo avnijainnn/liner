@@ -1,0 +1,16 @@
+{% extends "base.html" %}{% block title %}Trials{% endblock %}
+{% block main %}
+<div class="top"><div><div class="eyebrow">Before launch and after every change</div><h1>Trials</h1>
+<p class="lede">Each manifest rule becomes a test call. Booking scenarios pass only on a fresh calendar read, however good the call sounded.</p></div>
+<form method="post" id="tf" class="row" onsubmit="this.action='/clients/'+this.client.value+'/trials'"><input type="hidden" name="csrf" value="{{ csrf }}">
+<select name="client" style="width:auto">{% for c in clients %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}</select>
+<select name="runs" style="width:auto"><option value="2">2 runs</option><option value="3" selected>3 runs</option></select><button class="btn green">Run trial</button></form></div>
+<div class="card flat" style="padding:4px 10px"><table>
+<thead><tr><th>Trial</th><th>Client</th><th>Stamped</th><th>Result</th><th>Changed since last</th><th></th></tr></thead><tbody>
+{% for t in rows %}{% set s = t.summary|j({}) %}
+<tr class="click" data-href="/trials/{{ t.id }}"><td>#{{ t.id }}<div class="faint" style="font-size:12px">{{ t.created_at|ago }} · {{ t.mode }}</div></td><td>{{ t.client_name }}</td>
+<td class="mono">manifest v{{ t.version }} · agent v{{ t.agent_version }}</td>
+<td>{% if s.scenarios %}<b>{{ s.passed }} of {{ s.scenarios }}</b> passed{% if s.flaky %} · {{ s.flaky|length }} flaky{% endif %}<div class="bar" style="margin-top:6px;width:160px"><i style="width:{{ (100*s.passed/s.scenarios)|round }}%"></i></div>{% else %}{{ pill(t.status) }}{% endif %}</td>
+<td class="muted">{{ s.changed_since_last|length if s.previous_trial else 'first trial' }}</td><td>{{ pill(t.status) }}</td></tr>
+{% else %}<tr><td colspan="6" class="empty">No trials yet.</td></tr>{% endfor %}</tbody></table></div>
+{% endblock %}

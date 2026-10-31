@@ -1,0 +1,37 @@
+{% extends "base.html" %}{% block title %}Sign in{% endblock %}
+{% block shell %}
+<div class="hero-auth">
+  <section class="l">
+    <div class="brand" style="padding:0 0 24px"><span class="w">vaada</span><span class="d" lang="hi">वादा</span></div>
+    <div class="claim">
+      <h1>Know when your voice agents break a promise.</h1>
+      <p>Vaada reads every call your AI receptionists take, checks the calendar and CRM afterwards, and shows you where what the caller was told doesn’t match what happened.</p>
+    </div>
+    <div class="example" aria-label="Example finding">
+      <div class="said"><small>Caller was told</small>Thursday, 10:00</div>
+      <div class="ne" aria-hidden="true">≠</div>
+      <div class="rec"><small>Calendar shows</small>Tuesday, 10:00</div>
+      <p class="foot">“Sorry, wait, make it Thursday instead.” The agent said yes, then booked the first day. <b>Caught 2 minutes after the call.</b></p>
+    </div>
+  </section>
+  <section class="r"><div style="width:100%;max-width:380px">
+    <form method="post">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <h2>Sign in</h2>
+      <p class="muted" style="margin-top:6px">For agencies running voice agents for their clients.</p>
+      {% if error %}<div class="flash err" style="margin-top:16px">{{ error }}</div>{% endif %}
+      <label>Email</label><input type="email" name="email" value="{{ email or '' }}" required autofocus>
+      <label>Password</label><input type="password" name="password" required>
+      <div class="row" style="margin-top:20px"><button class="btn">Sign in</button><a class="link" href="/signup">Create an agency</a></div>
+    </form>
+    {% if demo %}
+    <form method="post" action="/demo" style="margin-top:28px">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <div class="sep"></div>
+      <p class="muted" style="margin-bottom:10px">Want to look around first? The sandbox has three made-up clients, a week of simulated calls and open cases.</p>
+      <button class="btn ghost">Open the sandbox</button>
+    </form>
+    {% endif %}
+  </div></section>
+</div>
+{% endblock %}

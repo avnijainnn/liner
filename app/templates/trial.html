@@ -1,0 +1,38 @@
+{% extends "base.html" %}{% block title %}Trial #{{ t.id }}{% endblock %}
+{% block shell %}{% if public %}<main style="max-width:1100px;margin:0 auto;padding:40px 20px">{{ self.main() }}</main>{% else %}{{ super() }}{% endif %}{% endblock %}
+{% block main %}
+{% if not public %}<div class="crumbs"><a href="/trials">Trials</a> / #{{ t.id }}</div>{% else %}<div class="brand" style="padding:0 0 24px"><span class="w">vaada</span><span class="d" lang="hi">वादा</span></div>{% endif %}
+<div class="top"><div>
+  <div class="eyebrow">{{ c.name }} · {{ t.mode }} trial · {{ t.created_at|localtime(c.timezone, '%d %b %Y, %-I:%M %p') }}</div>
+  {% if s.scenarios %}<h1>{{ s.passed }} of {{ s.scenarios }} scenarios held</h1>{% else %}<h1>Trial {{ t.status }}</h1>{% endif %}
+  <p class="lede">Stamped with manifest v{{ v.version }} (<span class="mono">{{ t.manifest_sha256|short(12) }}</span>) and agent v{{ t.agent_version }}. {{ t.runs_per_scenario }} runs per scenario to catch flaky behaviour.{% if c.is_sandbox %} Sandbox agent — not a live agency agent.{% endif %}</p></div>
+  {% if not public %}<div class="row"><form method="post" action="/clients/{{ c.id }}/trials" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="runs" value="{{ t.runs_per_scenario }}"><button class="btn ghost">Re-run</button></form>
+  <form method="post" action="/trials/{{ t.id }}/share" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn">Share with client</button></form></div>{% endif %}
+</div>
+{% if share %}<div class="ev" style="margin-bottom:16px"><div class="k">Read-only link for {{ c.name }}</div><div class="row between"><div class="v ok">{{ share }}</div><button class="btn sm" data-copy="{{ share }}">Copy</button></div></div>{% endif %}
+{% if s.error %}<div class="flash err">{{ s.error }}</div>{% endif %}
+{% if s.scenarios %}
+<div class="grid g4">
+  <div class="card stat"><div class="n">{{ s.passed }}<small>/ {{ s.scenarios }}</small></div><div class="l">Verified pass rate</div><div class="d">{{ s.runs }} calls placed</div></div>
+  <div class="card stat"><div class="n">{{ s.failed|length }}</div><div class="l">Failing every run</div></div>
+  <div class="card stat"><div class="n">{{ s.flaky|length }}</div><div class="l">Flaky</div><div class="d">passed some runs, not all</div></div>
+  <div class="card stat"><div class="n">{{ s.changed_since_last|length if s.previous_trial else '—' }}</div><div class="l">Changed since trial #{{ s.previous_trial or '—' }}</div></div>
+</div>
+{% if s.changed_since_last %}<div class="card" style="margin-top:16px"><h3>Changed since last trial</h3>{% for x in s.changed_since_last %}<span class="pill plain" style="margin:3px">{{ x.scenario }}: {{ x['from'] }} → {{ x.to }}</span>{% endfor %}</div>{% endif %}
+{% endif %}
+{% for field, scs in groups.items() %}
+<div class="card" style="margin-top:16px"><div class="eyebrow">Manifest rule · {{ field|replace('_',' ') }}</div>
+{% for sid, g in scs.items() %}{% set st = s.status[sid] if s.status else '' %}
+  <details style="border-top:1px solid var(--line);padding:12px 0" {{ 'open' if st != 'pass' }}>
+    <summary class="row between" style="list-style:none"><span style="color:var(--ink);font-size:14.5px"><b>{{ g.sc.title }}</b><span class="muted"> — expected: {{ g.sc.expect }}</span></span>
+      <span class="row"><span class="dots">{% for r in g.runs %}<i class="{{ r.verdict }}" title="run {{ r.run_no }}: {{ r.verdict }}"></i>{% endfor %}</span>{{ pill(st or 'unknown') }}</span></summary>
+    {% for r in g.runs %}{% set a = r.actual|j({}) %}
+      <div class="grid g2" style="margin-top:10px">
+        <div><p style="font-size:13px"><b>Run {{ r.run_no }}</b> {{ pill(r.verdict) }} {{ r.reason }}</p>
+          {% if a.promised %}<p class="muted" style="font-size:13px;margin-top:6px">Promised: {{ a.promised }}<br>Calendar: {% if a.record %}{{ a.record.start_at|localtime(c.timezone, '%a %d %b, %-I:%M %p') }} · {{ a.record.status }}{% else %}nothing found{% endif %}</p>{% endif %}
+          {% if a.quote %}<p class="muted" style="font-size:13px;margin-top:6px">Clip: “{{ a.quote }}”</p>{% endif %}</div>
+        <pre class="mono" style="white-space:pre-wrap;font-size:11.5px;background:var(--surface-2);padding:10px;border-radius:10px;max-height:170px;overflow:auto;margin:0">{{ r.clip }}</pre>
+      </div>{% endfor %}
+  </details>{% endfor %}
+</div>{% endfor %}
+{% endblock %}

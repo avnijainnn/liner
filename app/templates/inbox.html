@@ -1,0 +1,72 @@
+{% extends "base.html" %}{% block title %}Needs action{% endblock %}
+{% block main %}
+<div class="top">
+  <div>
+    {% if rows %}
+    <h1>{{ rows|length }} promise{{ 's' if rows|length != 1 }} to look at across {{ clients|length }} client{{ 's' if clients|length != 1 }}</h1>
+    {% else %}
+    <h1>Every promise checks out. Nothing needs you.</h1>
+    {% endif %}
+    <p class="lede">Each row compares what a caller was told with what the record shows. Most urgent first.</p>
+  </div>
+</div>
+
+<p class="tally">In the last 30 days <b>{{ m.precision|pct }}</b> of reviewed flags were real ({{ m.precision.num }} of {{ m.precision.den }}),
+  <b>{{ m.coverage|pct }}</b> of bookings were checked to a verdict,
+  {% if m.time_to_fix_h is not none %}a verified fix took <b>{{ m.time_to_fix_h }} h</b> at the median ({{ m.fixed }} case{{ 's' if m.fixed != 1 }}),{% else %}no fixes have been verified yet,{% endif %}
+  and <b>{{ m.client_approved|pct }}</b> of rulebooks were approved by the client themselves.</p>
+
+<nav class="probs" aria-label="Filter by kind of problem">
+  {% for key, label in [('semantic','What the agent said'),('outcome','What actually happened'),('execution','How it ran')] %}
+  <a href="/findings?problem={{ key }}"><span class="ptag">{{ label }}</span><b>{{ prob_counts.get(key, 0) }}</b></a>{% endfor %}
+</nav>
+{% if patterns %}<div class="notice" style="margin-bottom:16px"><b>The same problem at several clients</b>
+  {% for pt in patterns[:5] %}<p style="padding:6px 0;border-top:1px solid var(--line)">{{ problem_tag(pt.type) }} <b>{{ pt.type|title }}</b>{% if pt.value not in ('None', 'h') %} · {{ pt.value|replace('_',' ') }}{% endif %} at <b>{{ pt.clients|length }} clients</b> <span class="muted">({{ pt.clients|join(', ') }})</span>. Probably a shared prompt or tool.</p>{% endfor %}</div>{% endif %}
+{% for r in rows %}
+{% set p = r.promised|j({}) %}
+<a class="item sev-{{ r.severity }}" href="/findings/{{ r.id }}">
+  <div class="prio {{ r.priority or ('P1' if r.severity=='high' else 'P2') }}">{{ r.priority or ('P1' if r.severity=='high' else 'P2') }}</div>
+  <div>
+    <div class="kind">{{ problem_tag(r.type) }}<b style="color:var(--ink)">{{ r.client_name }}</b><span>{{ r.type|replace('_',' ')|capitalize }}</span>{% if r.type in RECORD_TYPES %} {{ pill(r.state) }}{% endif %}
+      {% if r.agent_changed %}<span class="pill s-medium plain">agent changed since approval</span>{% endif %}
+      {% if r.boundary_note %}<span class="pill s-boundary plain">boundary</span>{% endif %}
+      <span class="faint">{{ r.ended_at|ago }}</span></div>
+    {% if r.type == 'booking' %}
+      <div class="what">{% if r.state=='contradicted' %}The calendar doesn’t match what {{ 'the caller' }} agreed.{% elif r.state=='unknown' %}Vaada couldn’t confirm this booking.{% else %}Fixed. The customer still needs to hear from you.{% endif %}</div>
+      <div class="trio {{ 'eq' if r.case_status=='fixed_awaiting_contact' else ('na' if r.state=='unknown' else '') }}">
+        <div><b>Caller was told</b>{{ (p.local_text or p.action or '—').split(' (')[0] }}</div>
+        <div><b>Calendar shows</b>{{ r.cal }}<div class="faint" style="font-size:12px">{{ r.reason }}</div></div>
+        <div><b>Next:</b>{% if r.case_status=='fixed_awaiting_contact' %}Tell the customer, mark contacted{% elif r.state=='unknown' %}Look up the caller, re-check or waive{% else %}Fix in HighLevel, then re-check{% endif %}{% if r.owner %} · {{ r.owner }}{% endif %}</div>
+      </div>
+    {% elif r.type in ('callback_promised', 'contact_update') %}
+      <div class="what">{{ 'A promised callback never happened.' if r.type == 'callback_promised' else 'The caller’s new contact details never reached the CRM.' }}</div>
+      <div class="trio"><div><b>Caller / agent said</b>“{{ ((r.span|j({})).quote or '')[:90] }}”</div><div><b>Record shows</b>{{ r.reason }}</div><div><b>Next:</b>{{ 'Create or finish the callback task, then re-check' if r.type == 'callback_promised' else 'Update the contact, then re-check' }}{% if r.owner %} · {{ r.owner }}{% endif %}</div></div>
+    {% elif r.type == 'message_promised' %}
+      <div class="what">{% if r.state=='contradicted' %}The agent promised a text that never went out.{% elif r.state=='unknown' %}Vaada couldn’t check the promised text.{% else %}Text sent — customer follow-up still open.{% endif %}</div>
+      <div class="trio"><div><b>Agent promised</b>“{{ ((r.span|j({})).quote or '')[:80] }}”</div><div><b>Conversation shows</b>{{ r.reason }}</div><div><b>Next:</b>Send the text or call the caller, then re-check</div></div>
+    {% elif r.type in ('duplicate_effect', 'retry_risk') %}{% set pr = r.promised|j({}) %}
+      <div class="what">{{ 'One request produced more than one side effect.' if r.type == 'duplicate_effect' else 'The tool said it failed, but the write landed.' }}</div>
+      <div class="trio"><div><b>Effects observed</b>{{ (pr.effects or [])|length }} · {{ (pr.effects or [])|join(', ') }}</div><div><b>Why flagged</b>{{ r.reason }}</div><div><b>Next:</b>{{ 'Remove the extra, then confirm' if r.type == 'duplicate_effect' else 'Stop any retry, fix the tool, then confirm' }}</div></div>
+    {% elif r.type == 'agent_drift' %}
+      <div class="what">{{ r.reason }}</div>
+      <div class="trio"><div><b>Approved</b>manifest v{{ r.manifest_version }}</div><div><b>Running</b>agent v{{ r.agent_version }}</div><div><b>Next:</b>Re-approve or roll back</div></div>
+    {% else %}
+      {% set s = r.span|j({}) %}
+      <div class="what">“{{ (s.quote or '')[:150] }}”</div>
+      <div class="trio"><div><b>Rule (manifest v{{ r.manifest_version }})</b>{{ (r.rule|j({})).text }}</div><div><b>Why flagged</b>{{ r.reason }}</div><div><b>{{ 'Status:' if r.state == 'confirmed' else 'Next:' }}</b>{% if r.state == 'confirmed' %}Confirmed · {{ r.case_status|replace('_',' ') }} · owner {{ r.owner or 'unassigned' }} · closes only on a passing re-test{% else %}Read the clip, then confirm or dismiss{% endif %}</div></div>
+    {% endif %}
+  </div>
+  <div style="text-align:right">{{ pill(r.severity) }}{% if r.due_at %}<div class="faint" style="font-size:12px;margin-top:8px">due {{ r.due_at|ago }}</div>{% endif %}</div>
+</a>
+{% else %}
+<div class="card empty"><h3>Nothing to look at</h3><p>Calls are checked as they finish. Anything that doesn’t match its record shows up here.</p></div>
+{% endfor %}
+
+{% if watching %}
+<h3 style="margin:34px 0 4px">Still checking</h3><p class="muted" style="margin-bottom:12px">Bookings whose calendar reads aren’t finished yet.</p>
+<div class="card flat" style="padding:6px 10px"><table>
+{% for r in watching %}{% set p = r.promised|j({}) %}
+<tr class="click" data-href="/findings/{{ r.id }}"><td><b>{{ r.client_name }}</b><div class="muted">{{ p.local_text }}</div></td><td>{{ pill('pending') }}</td><td class="muted">{{ r.reason }}</td><td class="faint">{{ r.ended_at|ago }}</td></tr>
+{% endfor %}</table></div>
+{% endif %}
+{% endblock %}

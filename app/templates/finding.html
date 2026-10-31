@@ -1,0 +1,172 @@
+{% extends "base.html" %}{% block title %}{{ f.type|title }} · {{ client.name }}{% endblock %}
+{% block main %}
+{% set p = f.promised|j({}) %}{% set span = f.span|j({}) %}{% set rule = f.rule|j({}) %}
+<div class="crumbs"><a href="/findings">Findings</a> / <a href="/clients/{{ client.id }}">{{ client.name }}</a> / #{{ f.id }}</div>
+<div class="top">
+  <div>
+    <div class="row" style="margin-bottom:12px">{{ problem_tag(f.type) }} {{ pill(f.state) }} {{ pill(f.severity) }}
+      {% if f.agent_changed %}<span class="pill s-medium plain">agent changed since approval</span>{% endif %}
+      {% if case %}<span class="pill plain">case #{{ case.id }} · {{ case.status|replace('_',' ') }}</span>{% endif %}
+      {% if client.is_sandbox %}<span class="pill s-sandbox plain">sandbox</span>{% endif %}</div>
+    <h1>{{ f.type|title }}</h1>
+    <p class="lede">{{ f.reason }}</p>
+  </div>
+  <div class="muted" style="text-align:right;font-size:13px">Call <a class="link" href="/calls/{{ call.id }}">{{ call.retell_call_id[:22] }}</a><br>{{ call.started_at|localtime(client.timezone) }} · {{ call.ended_at|ago }}</div>
+</div>
+
+{% if f.boundary_note %}<div class="notice" style="margin-bottom:16px"><b>Boundary binding.</b> {{ f.boundary_note }}</div>{% endif %}
+
+{% if f.type == 'booking' %}
+<div class="vs {{ 'eq' if f.state in ('verified','resolved') else ('na' if f.state in ('pending','unknown') else '') }}">
+  <div class="pane"><div class="cap">What the caller finally agreed</div>
+    <div class="big">{{ (p.local_text or (p.action|capitalize) or '—').split(' (')[0] }}</div>
+    <div class="muted" style="margin-top:8px;font-size:13px">{{ p.action }} · {{ client.timezone }}{% if p.corrections %} · corrected mid-call{% endif %}{% if p.uncertain %} · am/pm inferred{% endif %}<br>{{ p.how }}</div></div>
+  <div class="pane {{ 'good' if f.state=='verified' else ('bad' if f.state=='contradicted' else '') }}"><div class="cap">What the calendar shows</div>
+    {% if rec %}<div class="big">{{ rec.start_at|localtime(client.timezone, '%a %d %b %Y, %-I:%M %p') if rec.start_at else '—' }}</div>
+      <div class="muted" style="margin-top:8px;font-size:13px">{{ rec.status }} · {{ rec.calendar_id }} · {{ rec.contact_id }}<br>read {{ obs[0].read_at|ago }} ({{ obs[0].stage }})</div>
+    {% elif obs %}<div class="big">Not found</div><div class="muted" style="margin-top:8px;font-size:13px">{{ obs[0].reason }} · read {{ obs[0].read_at|ago }}</div>
+    {% else %}<div class="big">Not read yet</div><div class="muted" style="margin-top:8px;font-size:13px">First read {{ (jobs[0].run_at if jobs else None)|ago }}</div>{% endif %}</div>
+  <div class="pane next"><div class="cap">Next step</div><div class="big">{{ next_step }}</div></div>
+</div>
+{% elif f.type == 'message_promised' %}
+{% set msgs = (obs[0].fields|j({})).messages if obs else [] %}
+<div class="vs {{ 'eq' if f.state in ('verified','resolved') else ('na' if f.state in ('pending','unknown') else '') }}">
+  <div class="pane"><div class="cap">What the agent promised</div><div class="big">“{{ span.quote }}”</div><div class="muted" style="margin-top:8px;font-size:13px">expected: exactly one text to {{ p.caller_phone or p.contact_id or 'the caller' }}</div></div>
+  <div class="pane {{ 'good' if f.state=='verified' else ('bad' if f.state=='contradicted' else '') }}"><div class="cap">What the conversation shows</div>
+    <div class="big">{% if obs %}{{ msgs|length }} text{{ '' if msgs|length == 1 else 's' }} sent{% else %}Not read yet{% endif %}</div>
+    <div class="muted" style="margin-top:8px;font-size:13px">{% for m in msgs[:3] %}{{ m.sent_at|localtime(client.timezone, '%-I:%M %p') }} · “{{ (m.body or '')[:60] }}”<br>{% endfor %}</div></div>
+  <div class="pane next"><div class="cap">Next step</div><div class="big">{{ next_step }}</div></div>
+</div>
+{% else %}
+<div class="vs {{ 'eq' if f.state in ('verified','resolved') else ('na' if f.state in ('pending','unknown') else '') }}">
+  <div class="pane"><div class="cap">What the agent said</div><div class="big">“{{ span.quote or '—' }}”</div><div class="muted" style="margin-top:8px;font-size:13px">turn {{ span.turn }} · labelled by {{ span.labeler or 'rules' }}</div></div>
+  <div class="pane"><div class="cap">{{ 'Approved fact' if f.type in ('wrong_information','ungrounded_answer') else ('Execution rule' if f.type in ('duplicate_effect','retry_risk') else 'Manifest rule') }} · v{{ f.manifest_version }}</div><div class="big">{{ rule.text or rule.field }}</div><div class="muted" style="margin-top:8px;font-size:13px">{{ rule.field }}{% if rule.value is string %}: {{ rule.value }}{% endif %}</div></div>
+  <div class="pane next"><div class="cap">Next step</div><div class="big">{{ next_step }}</div></div>
+</div>
+{% endif %}
+
+{% if f.type == 'booking' %}{% set callers = (p.evidence or [])|selectattr('role', 'equalto', 'caller')|list %}{% set agents = (p.evidence or [])|selectattr('role', 'equalto', 'agent')|list %}
+<div class="card" style="margin-top:16px"><div class="row between"><h3>Four-way check</h3><span class="muted" style="font-size:12.5px">Each column is independent evidence. Only the last one can verify.</span></div>
+  <div class="grid g4" style="margin-top:12px">
+    <div><div class="eyebrow">Caller requested</div>{% for e in callers %}<p style="font-size:13.5px">“{{ e.quote }}”</p>{% else %}<p class="muted">—</p>{% endfor %}{% if p.corrections %}<p class="faint" style="font-size:12px">final request after {{ p.corrections|length }} correction(s)</p>{% endif %}</div>
+    <div><div class="eyebrow">Agent promised</div>{% for e in agents %}<p style="font-size:13.5px">“{{ e.quote }}”</p>{% else %}<p class="muted">no confirmation</p>{% endfor %}</div>
+    <div><div class="eyebrow">Tools executed</div>{% for tl in tools if tl.name %}<p class="mono" style="font-size:12px">{{ tl.name }} → {% if tl.successful == false or (tl.result is mapping and tl.result.error) %}<span style="color:var(--bad)">failed</span>{% else %}<span style="color:var(--ok)">ok</span>{% endif %}</p>{% else %}<p class="muted">none logged</p>{% endfor %}</div>
+    <div><div class="eyebrow">Record shows</div>{% if rec %}<p style="font-size:13.5px">{{ rec.start_at|localtime(client.timezone, '%a %d %b, %-I:%M %p') }} · {{ rec.status }}</p>{% elif obs %}<p style="font-size:13.5px">{{ obs[0].reason }}</p>{% else %}<p class="muted">not read yet</p>{% endif %}{{ pill(f.state) }}</div>
+  </div></div>
+{% endif %}
+<div class="split" style="margin-top:18px">
+  <div class="stack">
+    <div class="card">
+      <div class="row between"><h3>Transcript</h3><span class="muted" style="font-size:12px">card numbers and codes are removed before storage</span></div>
+      <div class="transcript">
+        {% set hit_turns = [span.turn] + ((p.evidence or [])|map(attribute='turn')|list) %}
+        {% for t in turns %}
+          <div class="turn {{ t.role }} {{ 'hit' if t.i == span.turn }}"><div class="who">{{ 'Agent' if t.role=='agent' else 'Caller' }}</div>
+          {%- if t.i == span.turn and span.quote and span.quote in t.text -%}
+            {{ t.text.split(span.quote)[0] }}<mark>{{ span.quote }}</mark>{{ t.text.split(span.quote, 1)[1] }}
+          {%- else -%}{{ t.text }}{%- endif -%}</div>
+          {% for tl in tools if tl.after_turn == t.i %}<div class="tool">⚙ {{ tl.name }}({{ (tl.arguments|tojson)[:90] }}) → {{ (tl.result|tojson)[:70] }}</div>{% endfor %}
+        {% endfor %}
+      </div>
+    </div>
+
+    {% if ledger %}{% set last = ledger[-1] %}
+    <div class="ev">
+      <div class="row between"><div><div class="k">Execution ledger · intent {{ last.intent_key }}</div>
+        <h3 style="margin-top:4px">Expected 1 {{ 'appointment' if last.kind=='appointment' else 'text' }} · observed {{ last.effects_list|length }}</h3></div>
+        <span class="pill {{ 's-verified' if last.verdict=='once' else ('s-contradicted' if last.verdict in ('duplicate','none','mismatch') else 's-pending') }}">{{ last.verdict|replace('_',' ') }}</span></div>
+      <div class="kv"><div><div class="k">tool attempts</div><div class="v">{{ last.attempts }}</div></div><div><div class="k">tool reported</div><div class="v {{ 'bad' if last.tool_reported in ('failed','none') else 'ok' }}">{{ last.tool_reported }}</div></div></div>
+      {% if last.note %}<p style="margin-top:10px;color:var(--ev-muted);font-size:12.5px">{{ last.note }}</p>{% endif %}
+      <div class="kv one">{% for e in last.effects_list %}<div><div class="k">effect {{ loop.index }}</div><div class="v">{{ e.id }} · {{ e.contact_id or '' }} · {{ (e.start_at or e.sent_at)|localtime(client.timezone, '%a %d %b %-I:%M %p') }}{% if e.status %} · {{ e.status }}{% endif %}</div></div>{% else %}<div><div class="v bad">no effect found</div></div>{% endfor %}</div>
+      {% for l in linked if l.id != f.id %}<p style="margin-top:10px;font-size:12.5px"><a href="/findings/{{ l.id }}">→ {{ l.type|title }} #{{ l.id }} ({{ l.state }})</a></p>{% endfor %}
+      <p style="margin-top:10px;font-size:12px;color:var(--ev-muted)">{{ ledger|length }} reconciliation{{ 's' if ledger|length != 1 }} recorded, append-only. Effects are matched across contact records that share the caller’s phone.</p>
+    </div>
+    {% elif linked %}<div class="card">{% for l in linked if l.id != f.id %}<p><a class="link" href="/findings/{{ l.id }}">Linked commitment: {{ l.type|title }} #{{ l.id }} ({{ l.state }})</a></p>{% endfor %}</div>{% endif %}
+    {% if f.type in RECORD_TYPES %}
+    <div class="card">
+      <h3>{{ 'Calendar reads' if f.type == 'booking' else 'Conversation reads' }}</h3>
+      <ul class="tl">
+        {% for o in obs|reverse %}
+        <li class="{{ 'ok' if o.verdict=='match' else ('bad' if o.verdict in ('mismatch','duplicate') else 'warn') }}"><b>{{ o.verdict|replace('_',' ')|capitalize }}</b> — {{ o.reason }}<div class="t">{{ o.stage }} read · {{ o.read_at|localtime(client.timezone, '%d %b %-I:%M:%S %p') }} · {{ o.source }}</div></li>
+        {% endfor %}
+        {% for j in jobs if not j.done %}<li><span class="muted">Scheduled {{ j.stage }} read</span><div class="t">{{ j.run_at|ago }}</div></li>{% endfor %}
+        {% if not obs and not jobs %}<li class="warn">No read possible: {{ f.reason }}</li>{% endif %}
+      </ul>
+    </div>
+    {% endif %}
+
+    {% if case %}
+    <div class="card">
+      <h3>Case log</h3>
+      <ul class="tl">{% for e in events %}{% set d = e.detail|j({}) %}
+        <li class="{{ 'ok' if e.action in ('verified_by_fresh_read','closed') else ('bad' if e.action=='disputed' else '') }}"><b>{{ e.action|replace('_',' ')|capitalize }}</b> by {{ e.actor }}{% if d.note %} — “{{ d.note }}”{% endif %}{% if d.reason and e.action!='opened' %} — {{ d.reason }}{% endif %}{% if d.owner %} → {{ d.owner }}{% endif %}{% if d.to_state %} → {{ d.to_state }}{% endif %}<div class="t">{{ e.at|localtime(client.timezone, '%d %b %-I:%M %p') }}</div></li>
+      {% endfor %}</ul>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="stack">
+    {% if u.role != 'viewer' %}
+    <div class="card">
+      <h3>Act</h3>
+      {% if f.type in RECORD_TYPES and case %}
+        {% if case.status in ('open','fixed_awaiting_contact') %}
+        <div class="row">
+          <form method="post" action="/cases/{{ case.id }}/act" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="action" value="recheck"><button class="btn green">Re-check calendar</button></form>
+          {% if client.is_sandbox and f.type in ('callback_promised', 'contact_update') %}<form method="post" action="/sandbox/{{ client.id }}" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="action" value="{{ 'make_task' if f.type == 'callback_promised' else 'update_contact' }}"><input type="hidden" name="phone" value="{{ p.caller_phone or '' }}"><input type="hidden" name="contact_id" value="{{ p.contact_id or '' }}"><input type="hidden" name="field" value="{{ p.field or '' }}"><input type="hidden" name="value" value="{{ p.value or '' }}"><input type="hidden" name="return" value="/findings/{{ f.id }}"><button class="btn ghost">{{ 'Create and complete the task in sandbox' if f.type == 'callback_promised' else 'Update the contact in sandbox' }}</button></form>
+          {% elif client.is_sandbox and f.type == 'message_promised' %}<form method="post" action="/sandbox/{{ client.id }}" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="action" value="send_text"><input type="hidden" name="phone" value="{{ p.caller_phone or '' }}"><input type="hidden" name="contact_id" value="{{ p.contact_id or '' }}"><input type="hidden" name="return" value="/findings/{{ f.id }}"><button class="btn ghost">Send the text in sandbox</button></form>
+          {% elif client.is_sandbox and p.appointment_id %}<a class="btn ghost" href="/sandbox/{{ client.id }}?appt={{ p.appointment_id }}&return=/findings/{{ f.id }}">Fix in sandbox HighLevel</a>
+          {% elif client.is_sandbox and p.contact_id %}<a class="btn ghost" href="/sandbox/{{ client.id }}?return=/findings/{{ f.id }}">Fix in sandbox HighLevel</a>
+          {% elif client.hl_location_id %}<a class="btn ghost" target="_blank" rel="noopener" href="https://app.gohighlevel.com/v2/location/{{ client.hl_location_id }}/calendars/view">Open in HighLevel ↗</a>{% endif %}
+        </div>
+        <div class="sep"></div>
+        <form method="post" action="/cases/{{ case.id }}/act"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="action" value="assign">
+          <label>Owner</label><div class="row"><select name="owner" style="flex:1">{% for x in users %}<option {{ 'selected' if case.owner==x.name }}>{{ x.name }}</option>{% endfor %}</select><button class="btn ghost sm">Assign</button></div></form>
+        <form method="post" action="/cases/{{ case.id }}/act"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="action" value="contacted">
+          <label>Customer communication · <b>{{ case.customer_contact|replace('_',' ') }}</b></label><div class="row"><input type="text" name="note" placeholder="What you told them (optional)" style="flex:1"><button class="btn ghost sm">Mark contacted</button></div></form>
+        <form method="post" action="/cases/{{ case.id }}/act"><input type="hidden" name="csrf" value="{{ csrf }}">
+          <label>Note, dispute or waive</label><textarea name="note" placeholder="Reason (required to waive or dispute)"></textarea>
+          <div class="row"><button class="btn ghost sm" name="action" value="note">Add note</button><button class="btn ghost sm" name="action" value="dispute">Disagree (keeps evidence)</button><button class="btn danger sm" name="action" value="waive">Waive</button></div></form>
+        {% else %}<p class="muted">Case is {{ case.status|replace('_',' ') }}{% if case.fixed_at %}; fixed {{ case.fixed_at|ago }}{% endif %}.</p>{% endif %}
+      {% elif f.type in RECORD_TYPES %}
+        <p class="muted">Vaada re-reads the calendar on schedule. A case opens only if the record is wrong or can’t be checked.</p>
+      {% elif case and case.status in ('open', 'retesting') %}
+        <p class="muted">Confirmed by {{ f.reviewed_by }}. Owner: <b>{{ case.owner or 'unassigned' }}</b>. Acknowledging does not close this; a passing independent check does.</p>
+        <form method="post" action="/cases/{{ case.id }}/act" style="margin-top:12px"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="action" value="verify">
+          <button class="btn green">{{ 'Re-test (running)' if case.status == 'retesting' else 'Verify fix' }}</button>
+          <p class="faint" style="font-size:12px;margin-top:6px">{% if f.type in ('agent_drift','config_drift') %}Re-reads the live agent and compares it with the manifest.{% elif f.type in ('duplicate_effect','retry_risk') %}Re-reads the record and counts the effects again.{% else %}Re-runs the trial scenarios compiled from this rule, 3 runs each. Every run must pass.{% endif %}</p></form>
+        <form method="post" action="/cases/{{ case.id }}/act"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="action" value="assign">
+          <label>Owner</label><div class="row"><select name="owner" style="flex:1">{% for x in users %}<option {{ 'selected' if case.owner==x.name }}>{{ x.name }}</option>{% endfor %}</select><button class="btn ghost sm">Assign</button></div></form>
+        <form method="post" action="/findings/{{ f.id }}/review"><input type="hidden" name="csrf" value="{{ csrf }}"><label>False positive after all?</label>
+          <div class="row"><input type="text" name="reason" placeholder="Reason (kept on record)" style="flex:1"><button class="btn ghost sm" name="decision" value="dismiss">Dismiss</button></div></form>
+      {% else %}
+        {% if f.state == 'open' %}
+        <form method="post" action="/findings/{{ f.id }}/review"><input type="hidden" name="csrf" value="{{ csrf }}">
+          <div class="row"><button class="btn" name="decision" value="confirm">Confirm and open a case</button></div>
+          <label>Or dismiss with a reason</label><textarea name="reason" placeholder="e.g. agent was quoting the website, not promising"></textarea>
+          <button class="btn ghost sm" name="decision" value="dismiss">Dismiss</button></form>
+        {% else %}
+        <p>{{ pill(f.state) }} by {{ f.reviewed_by }} {{ f.reviewed_at|ago }}{% if f.dismissed_reason %} — “{{ f.dismissed_reason }}”{% endif %}</p>
+        <form method="post" action="/findings/{{ f.id }}/review" style="margin-top:12px"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn ghost sm" name="decision" value="reopen">Reopen</button></form>
+        {% endif %}
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <div class="ev">
+      <div class="k">Judged against</div>
+      <h3 style="margin-top:6px">Manifest v{{ f.manifest_version or '—' }}</h3>
+      <div class="kv">
+        <div><div class="k">sha-256</div><div class="v">{{ f.manifest_sha256 or 'no manifest in force' }}</div></div>
+        <div><div class="k">signed with</div><div class="v">{{ f.signature_key_id or '—' }} · ed25519</div></div>
+        <div><div class="k">approved by</div><div class="v">{% if approval %}{{ approval.approver_name }} ({{ approval.role }}){% else %}—{% endif %}</div></div>
+        <div><div class="k">approved for agent</div><div class="v">v{{ mv.approved_agent_version if mv else '—' }}</div></div>
+        <div><div class="k">agent that ran</div><div class="v {{ 'bad' if f.agent_changed else 'ok' }}">v{{ f.agent_version }}{% if f.agent_changed %} · changed{% endif %}</div></div>
+        <div><div class="k">binding</div><div class="v">{{ st.binding_status if st else '—' }} · {{ st.drift_class if st else '' }}</div></div>
+      </div>
+      {% if receipt %}<div class="kv one"><div><div class="k">binding receipt #{{ receipt.seq }}</div><div class="v">{{ receipt.receipt_hash }}</div></div></div>{% endif %}
+      <p style="margin-top:14px;font-size:12px;color:var(--ev-muted)">A later edit or approval never changes this verdict. <a href="/clients/{{ client.id }}/integrity">Verify the chain</a></p>
+    </div>
+  </div>
+</div>
+{% endblock %}

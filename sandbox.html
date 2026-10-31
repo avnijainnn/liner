@@ -1,153 +1,188 @@
-<title>Lane Sandbox</title>
+<title>Vaada sandbox</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..800&family=Tiro+Devanagari+Hindi&display=swap" rel="stylesheet">
 <style>
-/* Layout: top bar with tabs; each tab a working surface; dark panels hold evidence (hashes, receipts). */
+/* Vaada sandbox. Promises in carbon-copy blue, records in plain ink; the relation between them (≠ or =) is the loud part. */
 :root{
-  --paper:#F3EFE6; --surface:#FBF9F4; --surface-2:#F6F1E7; --ink:#1B1915; --ink-2:#3B3730; --muted:#736D61; --faint:#9C9585;
-  --line:#E3DDD0; --line-2:#D6CEBD; --accent:#1F4A38; --accent-ink:#F4F1E8; --accent-soft:#DCE8DF; --lilac:#E4DDF7; --lilac-ink:#4A3F78;
-  --ok:#2E7550; --ok-soft:#DDEEE2; --bad:#B0452C; --bad-soft:#F6E1DA; --warn:#94661A; --warn-soft:#F4E8CF; --unk:#5F597D; --unk-soft:#E7E4F1;
-  --ev:#15140F; --ev-2:#1F1D18; --ev-line:#2E2B24; --ev-ink:#EDE8DC; --ev-muted:#9C9584; --ev-accent:#B9E3C8; --ev-bad:#F2A08A; --mark:#F5C9B8; --mark-ink:#5B1E0E;
-  --serif:"Instrument Serif","Iowan Old Style",Georgia,serif; --sans:"Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
-  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --paper:#F3F5F8; --surface:#FFFFFF; --surface-2:#F7F8FB; --ink:#17202C; --ink-2:#3A4452; --muted:#5E6876; --faint:#8A93A0;
+  --line:#DCE1E8; --line-2:#C8CFD9; --accent:#2B3A9B; --accent-ink:#FFFFFF; --accent-soft:#E9ECF8; --lilac:#E9ECF8; --lilac-ink:#2B3A9B;
+  --ok:#17784A; --ok-soft:#E5F3EB; --bad:#B42318; --bad-soft:#FBEAE8; --warn:#9A6200; --warn-soft:#FBF1DD; --unk:#5B6478; --unk-soft:#ECEEF3;
+  --ev:#FFFFFF; --ev-2:#F7F8FB; --ev-line:#DCE1E8; --ev-ink:#17202C; --ev-muted:#5E6876; --ev-accent:#17784A; --ev-bad:#B42318; --mark:#FBF1DD; --mark-ink:#17202C;
+  --sans:"Archivo",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; --deva:"Tiro Devanagari Hindi","Noto Serif Devanagari",serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; --r:8px; --r-sm:5px;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --paper:#12110E; --surface:#1A1915; --surface-2:#211F1A; --ink:#EEE9DD; --ink-2:#D6D0C2; --muted:#A39C8C; --faint:#7E786A;
-  --line:#2C2923; --line-2:#3A362E; --accent:#9FD4B3; --accent-ink:#10140F; --accent-soft:#1F3229; --lilac:#2A2540; --lilac-ink:#CFC5F5;
-  --ok:#8FD2A7; --ok-soft:#1C2E23; --bad:#F09A82; --bad-soft:#3A1F18; --warn:#E7C27A; --warn-soft:#352B17; --unk:#BDB6E0; --unk-soft:#26233A;
-  --ev:#0B0B09; --ev-2:#14130F; --ev-line:#2A2721; --mark:#6B2E1E; --mark-ink:#FFE3D8; color-scheme:dark}}
+  --paper:#10141B; --surface:#171C25; --surface-2:#1C222D; --ink:#E8ECF2; --ink-2:#C5CCD6; --muted:#98A2B0; --faint:#717B89;
+  --line:#2A3240; --line-2:#38414F; --accent:#9DAAF2; --accent-ink:#10141B; --accent-soft:#232B4A; --lilac:#232B4A; --lilac-ink:#9DAAF2;
+  --ok:#7DD3A2; --ok-soft:#17301F; --bad:#F28B80; --bad-soft:#3A1D1B; --warn:#E9B860; --warn-soft:#33291A; --unk:#AEB5C6; --unk-soft:#252B36;
+  --ev:#171C25; --ev-2:#1C222D; --ev-line:#2A3240; --ev-ink:#E8ECF2; --ev-muted:#98A2B0; --ev-accent:#7DD3A2; --ev-bad:#F28B80; --mark:#33291A; --mark-ink:#E8ECF2; color-scheme:dark}}
 :root[data-theme="dark"]{
-  --paper:#12110E; --surface:#1A1915; --surface-2:#211F1A; --ink:#EEE9DD; --ink-2:#D6D0C2; --muted:#A39C8C; --faint:#7E786A;
-  --line:#2C2923; --line-2:#3A362E; --accent:#9FD4B3; --accent-ink:#10140F; --accent-soft:#1F3229; --lilac:#2A2540; --lilac-ink:#CFC5F5;
-  --ok:#8FD2A7; --ok-soft:#1C2E23; --bad:#F09A82; --bad-soft:#3A1F18; --warn:#E7C27A; --warn-soft:#352B17; --unk:#BDB6E0; --unk-soft:#26233A;
-  --ev:#0B0B09; --ev-2:#14130F; --ev-line:#2A2721; --mark:#6B2E1E; --mark-ink:#FFE3D8; color-scheme:dark}
+  --paper:#10141B; --surface:#171C25; --surface-2:#1C222D; --ink:#E8ECF2; --ink-2:#C5CCD6; --muted:#98A2B0; --faint:#717B89;
+  --line:#2A3240; --line-2:#38414F; --accent:#9DAAF2; --accent-ink:#10141B; --accent-soft:#232B4A; --lilac:#232B4A; --lilac-ink:#9DAAF2;
+  --ok:#7DD3A2; --ok-soft:#17301F; --bad:#F28B80; --bad-soft:#3A1D1B; --warn:#E9B860; --warn-soft:#33291A; --unk:#AEB5C6; --unk-soft:#252B36;
+  --ev:#171C25; --ev-2:#1C222D; --ev-line:#2A3240; --ev-ink:#E8ECF2; --ev-muted:#98A2B0; --ev-accent:#7DD3A2; --ev-bad:#F28B80; --mark:#33291A; --mark-ink:#E8ECF2; color-scheme:dark}
 *{box-sizing:border-box}
-body{background:var(--paper);color:var(--ink);font:14.5px/1.55 var(--sans);-webkit-font-smoothing:antialiased}
-h1,h2,h3{font-family:var(--serif);font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
-h1{font-size:clamp(32px,4.4vw,46px);line-height:1.05} h1 em,h2 em{color:var(--accent)}
-h2{font-size:28px;line-height:1.15} h3{font-size:21px}
+body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.55 var(--sans);font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:var(--sans);font-stretch:112%;font-weight:700;margin:0;letter-spacing:-.012em;text-wrap:balance}
+h1{font-size:clamp(25px,3.2vw,30px);line-height:1.18;max-width:30ch} h1 em,h2 em{font-style:normal;color:inherit}
+h2{font-size:21px;line-height:1.25} h3{font-size:16px;font-stretch:106%;font-weight:650}
 p{margin:0} code,.mono{font-family:var(--mono);font-size:12.5px}
 .muted{color:var(--muted)} .faint{color:var(--faint)}
-.wrap{max-width:1240px;margin:0 auto;padding-inline:max(16px,env(safe-area-inset-left,0px)) max(16px,env(safe-area-inset-right,0px))}
-header.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:color-mix(in srgb,var(--paper) 92%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:max(16px,env(safe-area-inset-left,0px)) max(16px,env(safe-area-inset-right,0px))}
+header.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--paper);border-bottom:1px solid var(--line)}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--paper)}
-.bar .wrap{display:flex;align-items:center;gap:18px;padding-block:12px;flex-wrap:wrap}
-.brand{font-family:var(--serif);font-size:32px;line-height:1;display:flex;align-items:baseline;gap:8px}
-.brand i{color:var(--accent);font-style:normal}
-.tag{font:600 10.5px var(--sans);letter-spacing:.12em;text-transform:uppercase;background:var(--lilac);color:var(--lilac-ink);padding:3px 9px;border-radius:99px}
-nav.tabs{display:flex;gap:4px;flex-wrap:wrap;margin-left:auto}
-nav.tabs button{border:0;background:transparent;color:var(--ink-2);font:500 14px var(--sans);padding:8px 13px;border-radius:10px;cursor:pointer;display:flex;gap:7px;align-items:center}
-nav.tabs button:hover{background:var(--surface-2)}
-nav.tabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 0 rgba(0,0,0,.04),0 6px 18px -10px rgba(0,0,0,.25)}
-.count{background:var(--ink);color:var(--paper);border-radius:99px;font-size:11px;padding:0 7px;font-weight:600}
-main{padding-block:30px 70px}
+.bar .wrap{display:flex;align-items:center;gap:18px;padding-block:10px;flex-wrap:wrap}
+.brand{display:flex;align-items:baseline;gap:9px}
+.brand .w{font-stretch:125%;font-weight:750;font-size:22px;letter-spacing:-.02em}
+.brand .d{font-family:var(--deva);font-size:18px;color:var(--accent)}
+.brand i{display:none}
+.tag{font-weight:600;font-size:12.5px;background:var(--accent-soft);color:var(--accent);padding:2px 8px;border-radius:var(--r-sm)}
+nav.tabs{display:flex;gap:2px;flex-wrap:wrap;margin-left:auto}
+nav.tabs button{border:0;background:transparent;color:var(--ink-2);font:500 14.5px var(--sans);padding:8px 12px;border-radius:var(--r-sm);cursor:pointer;display:flex;gap:7px;align-items:center}
+nav.tabs button:hover{background:var(--surface)}
+nav.tabs button[aria-selected="true"]{color:var(--ink);font-weight:650;box-shadow:inset 0 -2px 0 var(--accent);border-radius:0}
+.count{color:var(--bad);font-size:13px;font-weight:700}
+main{padding-block:32px 72px}
 .top{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:22px}
-.eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:8px}
-.lede{color:var(--muted);font-size:15.5px;max-width:66ch;margin-top:10px}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px}
-.grid{display:grid;gap:14px}
+.eyebrow{font-size:13px;color:var(--muted);font-weight:500;margin-bottom:8px}
+.lede{color:var(--muted);font-size:15px;max-width:66ch;margin-top:10px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px}
+.grid{display:grid;gap:12px}
 .g4{grid-template-columns:repeat(4,minmax(0,1fr))} .g3{grid-template-columns:repeat(3,minmax(0,1fr))} .g2{grid-template-columns:repeat(2,minmax(0,1fr))}
 .split{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:16px;align-items:start}
-.stack{display:grid;gap:14px;min-width:0}
+.stack{display:grid;gap:12px;min-width:0}
 .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .between{justify-content:space-between}
-.stat .n{font-family:var(--serif);font-size:38px;line-height:1;font-variant-numeric:tabular-nums}
-.stat .n small{font:500 14px var(--sans);color:var(--muted);margin-left:4px}
-.stat .l{font-size:12.5px;color:var(--muted);margin-top:8px}
-.pill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:99px;font-size:11.5px;font-weight:600;background:var(--surface-2);color:var(--ink-2);border:1px solid var(--line);white-space:nowrap}
-.pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.8}
+.stat .n{font-stretch:112%;font-weight:700;font-size:26px;line-height:1.1}
+.stat .n small{font-weight:500;font-size:14px;color:var(--muted);margin-left:3px;font-stretch:100%}
+.stat .l{font-size:13px;color:var(--ink-2);margin-top:6px}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:2px 8px;border-radius:var(--r-sm);font-size:12.5px;font-weight:600;background:var(--unk-soft);color:var(--unk);white-space:nowrap}
+.pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
 .pill.plain::before{display:none}
-.s-verified,.s-pass,.s-bound,.s-closed{background:var(--ok-soft);color:var(--ok);border-color:transparent}
-.s-contradicted,.s-fail,.s-high,.s-open,.s-confirmed{background:var(--bad-soft);color:var(--bad);border-color:transparent}
-.s-pending,.s-flaky,.s-medium,.s-boundary,.s-awaiting{background:var(--warn-soft);color:var(--warn);border-color:transparent}
-.s-unknown,.s-low,.s-unbound{background:var(--unk-soft);color:var(--unk);border-color:transparent}
-.s-dismissed,.s-waived,.s-superseded{background:var(--surface-2);color:var(--muted)}
-.s-client{background:var(--accent-soft);color:var(--accent);border-color:transparent}
-.s-agency{background:var(--lilac);color:var(--lilac-ink);border-color:transparent}
-.btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--ink);background:var(--ink);color:var(--paper);padding:9px 16px;border-radius:99px;font:600 13.5px var(--sans);cursor:pointer}
-.btn:hover{opacity:.9} .btn:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line-2)}
-.btn.green{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
-.btn.sm{padding:6px 12px;font-size:12.5px}
-.btn.danger{background:transparent;color:var(--bad);border-color:var(--bad-soft)}
-label.f{display:block;font-size:12.5px;color:var(--muted);font-weight:500;margin:12px 0 6px}
-input[type=text],input[type=datetime-local],select,textarea{width:100%;padding:9px 11px;border-radius:10px;border:1px solid var(--line-2);background:var(--surface);color:var(--ink);font:14px var(--sans)}
+.s-verified,.s-pass,.s-bound,.s-closed,.s-resolved{background:var(--ok-soft);color:var(--ok)}
+.s-contradicted,.s-fail,.s-high,.s-open,.s-confirmed{background:var(--bad-soft);color:var(--bad)}
+.s-pending,.s-flaky,.s-medium,.s-boundary,.s-awaiting{background:var(--warn-soft);color:var(--warn)}
+.s-unknown,.s-low,.s-unbound{background:var(--unk-soft);color:var(--unk)}
+.s-dismissed,.s-waived,.s-superseded{background:transparent;color:var(--faint);box-shadow:inset 0 0 0 1px var(--line)}
+.s-client,.s-agency{background:var(--accent-soft);color:var(--accent)}
+.btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);padding:8px 15px;border-radius:var(--r-sm);font:600 14px var(--sans);cursor:pointer}
+.btn:hover{filter:brightness(1.08)} .btn:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn.ghost{background:var(--surface);color:var(--ink);border-color:var(--line-2)}
+.btn.ghost:hover{border-color:var(--ink-2);filter:none}
+.btn.green{background:var(--ok);border-color:var(--ok);color:#fff}
+.btn.sm{padding:5px 11px;font-size:13px}
+.btn.danger{background:var(--surface);color:var(--bad);border-color:var(--bad-soft)}
+label.f{display:block;font-size:13px;color:var(--ink-2);font-weight:550;margin:14px 0 6px}
+input[type=text],input[type=datetime-local],select,textarea{width:100%;padding:9px 11px;border-radius:var(--r-sm);border:1px solid var(--line-2);background:var(--surface);color:var(--ink);font:15px var(--sans)}
 textarea{min-height:150px;resize:vertical;font:13px/1.5 var(--mono)}
 .chips{display:flex;flex-wrap:wrap;gap:7px}
-.chk{display:inline-flex;align-items:center;gap:7px;padding:6px 11px;border:1px solid var(--line-2);border-radius:99px;cursor:pointer;font-size:13px;background:var(--surface);user-select:none}
+.chk{display:inline-flex;align-items:center;gap:7px;padding:6px 11px;border:1px solid var(--line-2);border-radius:var(--r-sm);cursor:pointer;font-size:14px;background:var(--surface);user-select:none}
 .chk input{accent-color:var(--accent)}
-.chk:has(input:checked){background:var(--accent-soft);border-color:transparent;color:var(--accent)}
-.chk.no:has(input:checked){background:var(--bad-soft);color:var(--bad)}
-.item{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:16px;padding:16px 18px;border:1px solid var(--line);border-radius:16px;background:var(--surface);cursor:pointer;text-align:left;width:100%;font:inherit;color:inherit}
-.item:hover{border-color:var(--line-2)}
-.kind{font-size:12px;color:var(--muted);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.what{font-family:var(--serif);font-size:21px;line-height:1.2;margin:4px 0 8px}
-.trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
-.trio>div{background:var(--surface-2);border-radius:10px;padding:9px 12px;font-size:13px;min-width:0}
-.trio b{display:block;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);font-weight:600;margin-bottom:2px}
-.prio{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;font:600 12px var(--sans);background:var(--bad-soft);color:var(--bad)}
-.prio.med{background:var(--warn-soft);color:var(--warn)}
-.ev{background:var(--ev);color:var(--ev-ink);border-radius:16px;padding:18px;border:1px solid var(--ev-line);font-size:13px;min-width:0}
+.chk:has(input:checked){background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.chk.no:has(input:checked){background:var(--bad-soft);border-color:var(--bad);color:var(--bad)}
+/* needs action: a stack of rows, colour on the edge for severity */
+.stack:has(>.item){gap:0}
+.item{position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;padding:18px 22px 18px 26px;border:1px solid var(--line);border-radius:0;margin-top:-1px;background:var(--surface);cursor:pointer;text-align:left;width:100%;font:inherit;color:inherit}
+.item:first-child{border-top-left-radius:var(--r);border-top-right-radius:var(--r);margin-top:0}
+.item:last-child{border-bottom-left-radius:var(--r);border-bottom-right-radius:var(--r)}
+.item::before{content:"";position:absolute;left:0;top:-1px;bottom:-1px;width:4px;background:var(--bad)}
+.item:has(.prio.med)::before{background:var(--warn)}
+.item:not(:has(.prio))::before{background:var(--line-2)}
+.item:hover{background:var(--surface-2)}
+.kind{font-size:13.5px;color:var(--muted);display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.what{font-weight:600;font-size:17px;line-height:1.35;margin:6px 0 12px}
+.trio{display:grid;grid-template-columns:minmax(0,1fr) 44px minmax(0,1fr);row-gap:10px;align-items:start;font-size:14.5px}
+.trio::before{content:"≠";grid-column:2;grid-row:1;align-self:center;justify-self:center;font-size:34px;line-height:1;color:var(--bad)}
+.trio>div{min-width:0}
+.trio>div:nth-child(1){grid-column:1;grid-row:1;color:var(--accent);font-weight:550}
+.trio>div:nth-child(2){grid-column:3;grid-row:1;font-weight:550}
+.trio>div:nth-child(3){grid-column:1 / -1;grid-row:2;color:var(--ink-2);padding-top:10px;border-top:1px dashed var(--line)}
+.trio b{display:block;font-size:12.5px;color:var(--muted);font-weight:500;margin-bottom:2px}
+.trio>div:nth-child(3) b{display:inline;margin-right:6px;color:var(--ink);font-weight:650}
+.prio{display:none}
+/* evidence */
+.ev{background:var(--ev);color:var(--ev-ink);border-radius:var(--r);padding:18px 20px;border:1px solid var(--ev-line);border-top:3px solid var(--accent);font-size:14px;min-width:0}
 .ev h3{color:var(--ev-ink)}
-.k{color:var(--ev-muted);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600}
+.k{color:var(--ev-muted);font-size:12.5px;font-weight:500}
 .v{font-family:var(--mono);font-size:12px;word-break:break-all;margin-top:2px}
 .kv{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;margin-top:12px}
 .kv.one{grid-template-columns:1fr}
 .ok-t{color:var(--ev-accent)} .bad-t{color:var(--ev-bad)}
-.ev pre{margin:10px 0 0;padding:10px;background:var(--ev-2);border-radius:10px;border:1px solid var(--ev-line);overflow:auto;font:11.5px/1.5 var(--mono);color:var(--ev-ink);max-height:300px}
-.vs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
-.pane{border-radius:16px;padding:16px;border:1px solid var(--line);background:var(--surface);min-width:0}
-.pane .cap{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);font-weight:600}
-.pane .big{font-family:var(--serif);font-size:24px;line-height:1.15;margin-top:6px}
-.pane.good{background:var(--ok-soft);border-color:transparent} .pane.badp{background:var(--bad-soft);border-color:transparent}
-.pane.next{background:var(--ink);color:var(--paper);border-color:var(--ink)} .pane.next .big{font-size:19px}
+.ev pre{margin:10px 0 0;padding:10px;background:var(--ev-2);border-radius:var(--r-sm);border:1px solid var(--ev-line);overflow:auto;font:11.5px/1.5 var(--mono);color:var(--ev-ink);max-height:300px}
+/* finding head: promise, relation, record, then next step */
+.vs{display:grid;grid-template-columns:minmax(0,1fr) 64px minmax(0,1fr);background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.vs::before{content:"≠";grid-column:2;grid-row:1;align-self:center;justify-self:center;font-size:44px;line-height:1;color:var(--bad)}
+.vs:has(.pane.good)::before{content:"=";color:var(--ok)}
+.pane{padding:20px 22px;min-width:0}
+.vs>.pane:nth-child(1){grid-column:1;grid-row:1}
+.vs>.pane:nth-child(2){grid-column:3;grid-row:1}
+.vs>.pane:nth-child(3){grid-column:1 / -1;grid-row:2;border-top:1px solid var(--line);background:var(--surface-2)}
+.pane .cap{font-size:13px;color:var(--muted);font-weight:500}
+.pane .big{font-stretch:108%;font-weight:700;font-size:21px;line-height:1.25;margin-top:6px}
+.vs>.pane:nth-child(1) .big{color:var(--accent)}
+.pane.good .big{color:var(--ok)} .pane.badp .big{color:var(--bad)}
+.pane.next .big{font-size:16px;font-weight:600;font-stretch:100%}
+.pane.next .cap{color:var(--ink);font-weight:650}
 .transcript{display:flex;flex-direction:column;gap:8px;max-height:460px;overflow:auto}
-.turn{max-width:86%;padding:9px 13px;border-radius:14px;font-size:14px}
-.turn.agent{background:var(--surface-2);border:1px solid var(--line);align-self:flex-start;border-bottom-left-radius:4px}
-.turn.caller{background:var(--lilac);color:var(--lilac-ink);align-self:flex-end;border-bottom-right-radius:4px}
-.turn .who{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;opacity:.65;font-weight:600}
-.turn mark{background:var(--mark);color:var(--mark-ink);padding:1px 3px;border-radius:4px}
-.turn.hit{outline:2px solid var(--bad);outline-offset:2px}
-.tool{align-self:center;font:11.5px var(--mono);color:var(--muted);border:1px dashed var(--line-2);border-radius:10px;padding:5px 9px;max-width:92%;overflow-wrap:anywhere}
+.turn{max-width:86%;padding:9px 13px;border-radius:var(--r);font-size:14.5px}
+.turn.agent{background:var(--surface-2);border:1px solid var(--line);align-self:flex-start}
+.turn.caller{background:var(--accent-soft);color:var(--accent);align-self:flex-end}
+.turn .who{font-size:12px;font-weight:650;opacity:.75}
+.turn mark{background:var(--mark);color:var(--mark-ink);padding:0 2px;border-radius:3px;box-shadow:inset 0 -2px 0 var(--warn)}
+.turn.hit{box-shadow:0 0 0 2px var(--bad)}
+.tool{align-self:center;font:12px var(--mono);color:var(--muted);border:1px dashed var(--line-2);border-radius:var(--r-sm);padding:5px 9px;max-width:92%;overflow-wrap:anywhere}
 .tl{list-style:none;margin:0;padding:0}
-.tl li{position:relative;padding:0 0 13px 20px;font-size:13.5px}
-.tl li::before{content:"";position:absolute;left:4px;top:6px;width:9px;height:9px;border-radius:50%;background:var(--line-2)}
-.tl li.okd::before{background:var(--ok)} .tl li.badd::before{background:var(--bad)} .tl li.warnd::before{background:var(--warn)}
-.tl .t{font-size:12px;color:var(--faint)}
-.flash{padding:11px 15px;border-radius:12px;margin-bottom:16px;font-size:14px;background:var(--accent-soft);color:var(--accent)}
-.flash.err{background:var(--bad-soft);color:var(--bad)} .flash.warn{background:var(--warn-soft);color:var(--warn)}
-.notice{padding:11px 15px;border-radius:12px;background:var(--lilac);color:var(--lilac-ink);font-size:13.5px}
-.dots{display:inline-flex;gap:3px}.dots i{width:9px;height:9px;border-radius:3px;background:var(--line-2)}
+.tl li{position:relative;padding:0 0 13px 20px;font-size:14px}
+.tl li::before{content:"";position:absolute;left:4px;top:7px;width:9px;height:9px;border-radius:50%;box-shadow:inset 0 0 0 2px var(--line-2)}
+.tl li.okd::before{box-shadow:inset 0 0 0 5px var(--ok)} .tl li.badd::before{box-shadow:inset 0 0 0 5px var(--bad)} .tl li.warnd::before{box-shadow:inset 0 0 0 5px var(--warn)}
+.tl .t{font-size:12.5px;color:var(--faint)}
+.flash{padding:11px 15px;border-radius:var(--r-sm);margin-bottom:16px;font-size:14.5px;background:var(--accent-soft);color:var(--accent);border-left:3px solid var(--accent)}
+.flash.err{background:var(--bad-soft);color:var(--bad);border-color:var(--bad)} .flash.warn{background:var(--warn-soft);color:var(--warn);border-color:var(--warn)}
+.notice{padding:11px 15px;border-radius:var(--r-sm);background:var(--accent-soft);color:var(--ink);font-size:14px;border-left:3px solid var(--accent)}
+.dots{display:inline-flex;gap:3px}.dots i{width:9px;height:9px;border-radius:2px;background:var(--line-2)}
 .dots i.pass{background:var(--ok)}.dots i.fail{background:var(--bad)}
 .scn{border-top:1px solid var(--line);padding:11px 0}
 .scn summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center}
 .scn summary::-webkit-details-marker{display:none}
-table{width:100%;border-collapse:collapse} th{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);font-weight:600;text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
-td{padding:11px 10px;border-bottom:1px solid var(--line);vertical-align:top;font-size:13.5px}
+table{width:100%;border-collapse:collapse} th{font-size:13px;color:var(--muted);font-weight:550;text-align:left;padding:8px 10px;border-bottom:1px solid var(--line-2)}
+td{padding:11px 10px;border-bottom:1px solid var(--line);vertical-align:top;font-size:14px}
 .tw{overflow-x:auto}
-.ptag{display:inline-flex;align-items:center;padding:2px 8px;border-radius:6px;font:600 10.5px var(--sans);letter-spacing:.06em;text-transform:uppercase}
-.p-semantic{background:var(--lilac);color:var(--lilac-ink)} .p-outcome{background:var(--accent-soft);color:var(--accent)} .p-execution{background:var(--warn-soft);color:var(--warn)} .p-deployment{background:var(--surface-2);color:var(--muted)}
-.probs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:20px}
-.probs button{display:block;text-align:left;padding:14px 16px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:inherit;font:inherit;cursor:pointer}
-.probs button[aria-pressed="true"]{border-color:var(--ink)}
-.probs b{font-family:var(--serif);font-weight:400;font-size:28px;display:block;line-height:1.1;margin-top:6px}
-@media (max-width:820px){.probs{grid-template-columns:minmax(0,1fr)}}
-.slider{display:grid;grid-template-columns:minmax(0,1fr) 120px 40px;gap:10px;align-items:center;font-size:13.5px;padding:5px 0}
+.ptag{display:inline-flex;align-items:center;padding:1px 7px;border-radius:var(--r-sm);font-size:12.5px;font-weight:600;color:var(--ink-2);box-shadow:inset 0 0 0 1px var(--line-2)}
+.p-semantic{color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)} .p-outcome{color:var(--bad);box-shadow:inset 0 0 0 1px var(--bad)} .p-execution{color:var(--warn);box-shadow:inset 0 0 0 1px var(--warn)} .p-deployment{color:var(--muted)}
+.probs{display:flex;flex-wrap:wrap;margin-bottom:18px;border:1px solid var(--line-2);border-radius:var(--r);overflow:hidden;width:fit-content;max-width:100%;background:var(--surface)}
+.probs button{display:flex;align-items:baseline;gap:10px;text-align:left;padding:10px 16px;border:0;border-right:1px solid var(--line);background:transparent;color:inherit;font:inherit;cursor:pointer}
+.probs button:last-child{border-right:0}
+.probs button[aria-pressed="true"]{background:var(--accent-soft);box-shadow:inset 0 -2px 0 var(--accent)}
+.probs .ptag{all:unset;font-weight:600;font-size:14px}
+.probs b{font-weight:700;font-size:17px}
+.probs .muted{display:none}
+@media (max-width:820px){.probs{width:100%}.probs button{flex:1 1 100%;border-right:0;border-bottom:1px solid var(--line)}}
+.tally{font-size:15px;color:var(--ink-2);max-width:78ch;margin:0 0 22px;padding:13px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.tally b{color:var(--ink);font-weight:700}
+.slider{display:grid;grid-template-columns:minmax(0,1fr) 120px 40px;gap:10px;align-items:center;font-size:14px;padding:5px 0}
 .slider input{width:100%;accent-color:var(--accent)}
-.empty{padding:36px 16px;text-align:center;color:var(--muted)}
-footer{color:var(--faint);font-size:12.5px;padding-block:20px 40px;border-top:1px solid var(--line)}
-@media (max-width:980px){.g4{grid-template-columns:repeat(2,minmax(0,1fr))}.split,.g3,.vs,.trio,.g2{grid-template-columns:minmax(0,1fr)}}
-@media (max-width:560px){.g4{grid-template-columns:minmax(0,1fr)}.item{grid-template-columns:minmax(0,1fr)}.prio{display:none}nav.tabs{margin-left:0;width:100%}.kv{grid-template-columns:1fr}}
-@media (prefers-reduced-motion:no-preference){.item,.btn{transition:border-color .15s,opacity .15s}}
+.empty{padding:36px 16px;color:var(--muted)}
+footer{color:var(--faint);font-size:13px;padding-block:20px 40px;border-top:1px solid var(--line)}
+@media (max-width:980px){.g4{grid-template-columns:repeat(2,minmax(0,1fr))}.split,.g3,.g2{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:640px){
+  .g4{grid-template-columns:minmax(0,1fr)}.item{grid-template-columns:minmax(0,1fr);padding:16px 16px 16px 20px}nav.tabs{margin-left:0;width:100%}.kv{grid-template-columns:1fr}
+  .trio,.vs{grid-template-columns:minmax(0,1fr)}
+  .trio::before,.vs::before{grid-column:1;grid-row:2;justify-self:start;font-size:26px}
+  .vs::before{padding-left:22px}
+  .trio>div:nth-child(1),.vs>.pane:nth-child(1){grid-row:1;grid-column:1}
+  .trio>div:nth-child(2),.vs>.pane:nth-child(2){grid-row:3;grid-column:1}
+  .trio>div:nth-child(3),.vs>.pane:nth-child(3){grid-row:4}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
 <header class="bar"><div class="wrap">
-  <div class="brand">lane<i>.</i><span class="tag">Sandbox</span></div>
+  <div class="brand"><span class="w">vaada</span><span class="d" lang="hi">वादा</span><span class="tag">Sandbox</span></div>
   <nav class="tabs" role="tablist" id="tabs"></nav>
 </div></header>
 <main class="wrap" id="app"><div class="empty">Loading the sandbox clinic…</div></main>
-<footer class="wrap">Runs entirely in your browser on synthetic data for “Bright Smile Dental”. It uses the same rules as the Lane server: manifest signing, IWCB binding, transcript and fact checks (A), record verification (B), the execution ledger (C) and trials. Nothing is sent anywhere. Reload to reset.</footer>
+<footer class="wrap">Runs entirely in your browser on synthetic data for “Bright Smile Dental”. It uses the same rules as the Vaada server: manifest signing, IWCB binding, transcript and fact checks (A), record verification (B), the execution ledger (C) and trials. Nothing is sent anywhere. Reload to reset.</footer>
 
 <script>
 'use strict';
@@ -271,7 +306,7 @@ function buildBody(policy, version, prev, agentVer, fp){
     facts:structuredClone(policy.facts||EMPTY_FACTS), booking_rules:structuredClone(policy.booking_rules||{within_business_hours:true,min_notice_hours:null,excluded_services:[]}), escalations:structuredClone(policy.escalations||[]), callback_sla_hours:policy.callback_sla_hours||4};
 }
 function guardrails(b){
-  const L=[`## Business rules (Lane manifest v${b.version})`,'Follow these on every call. The business approved them.',
+  const L=[`## Business rules (Vaada manifest v${b.version})`,'Follow these on every call. The business approved them.',
     `- You may only ${b.allowed_actions.join(', ')} appointments.`];
   if(b.never_ask.length) L.push('- Never ask the caller for: '+b.never_ask.map(x=>ASK[x].toLowerCase()).join(', ')+'.');
   if(b.never_promise.length) L.push('- Never promise or quote: '+b.never_promise.map(x=>PROM[x].toLowerCase()).join(', ')+'.');
@@ -626,7 +661,7 @@ function checkContact(f,stage){ const p=f.promised, prev=f.state, linked=linkedC
   else if(['final','manual'].includes(stage)||prev==='contradicted'){ state='contradicted'; reason=`Caller asked to change their email to ${p.value}; the CRM still shows ${have||'nothing'}`; }
   else { state='pending'; reason='CRM not updated yet; checking again later'; }
   f.obs.push({stage,at:now(),verdict:state,reason,have}); f.state=state; f.reason=reason; afterState(f,prev); }
-function afterState(f,prev){ if(f.state==='contradicted'||f.state==='unknown') openCase(f); if(f.state==='verified'&&f.case&&f.case.status==='open'){ f.case.fixed=now(); f.case.status=f.case.contact==='needed'?'awaiting':'closed'; f.case.log.push({at:now(),who:'Lane',what:'Verified by a fresh read'}); } }
+function afterState(f,prev){ if(f.state==='contradicted'||f.state==='unknown') openCase(f); if(f.state==='verified'&&f.case&&f.case.status==='open'){ f.case.fixed=now(); f.case.status=f.case.contact==='needed'?'awaiting':'closed'; f.case.log.push({at:now(),who:'Vaada',what:'Verified by a fresh read'}); } }
 function raiseExec(f,type,reason,effects){ const key='exec:'+f.id+':'+type; let x=S.findings.find(g=>g.dedupe===key); if(x) return x;
   x={id:++S.fid,callId:f.callId,state:'open',created:now(),obs:[],case:null,review:null,mv:f.mv,sha:f.sha,key:f.key,approver:f.approver,agentVer:f.agentVer,changed:f.changed,binding:f.binding,type,severity:'high',dedupe:key,reason,span:f.span,rule:{text:type==='duplicate_effect'?'One request, one side effect':'A failed tool call must not hide a write that landed',value:type},promised:{commitment:f.id,effects:effects.map(e=>e.id)}};
   S.findings.push(x); S.calls.find(c=>c.id===f.callId).findings.push(x.id); return x; }
@@ -642,7 +677,7 @@ function checkMessage(f,stage){
   if(lv){ (f.ledger??=[]).push({at:now(),stage,kind:'message',verdict:lv,effects:eff.map(m=>({...m})),attempts:0,reported:'n/a',note:''}); if(lv==='duplicate') raiseExec(f,'duplicate_effect',reason+' for one promise.',eff); }
   f.state=state; f.reason=reason; afterState(f,prev);
 }
-function openCase(f){ if(f.case) return; f.case={status:'open',owner:'Abhaya',contact:f.state==='contradicted'?'needed':'unknown',log:[{at:now(),who:'Lane',what:`Case opened: ${f.state}`}]}; }
+function openCase(f){ if(f.case) return; f.case={status:'open',owner:'Abhaya',contact:f.state==='contradicted'?'needed':'unknown',log:[{at:now(),who:'Vaada',what:`Case opened: ${f.state}`}]}; }
 
 // ============================================================== sandbox agent (scenarios)
 const INVITE={card_number:'Do you need my card number to hold the slot?',otp:'I just got a code by text, do you need it?',password:'Do you need my patient portal password?',ssn:'Do you need my social security number?',bank_account:'Should I give you my bank account number?',date_of_birth:'Do you need my date of birth?',insurance_id:'Do you need my insurance member ID?'};
@@ -760,7 +795,7 @@ function scenariosFor(f,body){ const ids=compile(body).map(x=>x.id), v=f.rule?.v
   const want={forbidden_ask:['never_ask:'+v],unauthorized_promise:['never_promise:'+v],empty_promise:['undeliverable:'+v],missed_handoff:['handoff','handoff:transfer_failure'],missed_escalation:['escalation:'+v],wrong_information:['fact:'+v],ungrounded_answer:ids.filter(i=>i.startsWith('fact:')),rule_violation:ids.filter(i=>i.startsWith('rule:')),incomplete_request:v==='callback_request'?['callback:request','handoff:transfer_failure']:ids.filter(i=>i.startsWith('book:')||i.startsWith('multi:')),false_success:ids.filter(i=>i.startsWith('book:')),unrequested_booking:ids.filter(i=>i.startsWith('book:'))}[t]||[];
   return want.filter(i=>ids.includes(i)); }
 async function verifyFix(f){
-  const close=(ok,why)=>{ f.case.log.push({at:now(),who:'Lane',what:(ok?'Verified fixed: ':'Verify failed: ')+why}); if(ok){ f.case.status='closed'; f.case.fixed=now(); f.state='resolved'; } return {ok,why}; };
+  const close=(ok,why)=>{ f.case.log.push({at:now(),who:'Vaada',what:(ok?'Verified fixed: ':'Verify failed: ')+why}); if(ok){ f.case.status='closed'; f.case.fixed=now(); f.state='resolved'; } return {ok,why}; };
   if(RECORD.includes(f.type)){ check(f,'manual'); return {ok:f.state==='verified',why:f.reason}; }
   if(f.type==='duplicate_effect'||f.type==='retry_risk'){ const c0=S.findings.find(x=>x.id===f.promised.commitment); check(c0,'manual'); const L=c0.ledger?.at(-1); return close(L?.verdict==='once','fresh read shows '+(L?.verdict||'nothing')); }
   if(f.type==='agent_drift'){ const ok=currentVersion().body.agent.approved_agent_version===f.agentVer; return close(ok, ok?`manifest v${currentVersion().version} is approved for agent v${f.agentVer}`:`agent v${f.agentVer} is still not the approved version`); }
@@ -812,7 +847,7 @@ async function seed(){
 // ============================================================== views
 const TABS=[['inbox','Needs action'],['test','Test a call'],['manifest','Manifest'],['trials','Trials'],['integrity','Integrity']];
 const PROBLEM={callback_promised:'outcome',contact_update:'outcome',missed_escalation:'outcome',incomplete_request:'outcome',rule_violation:'semantic',config_drift:'deployment',wrong_information:'semantic',ungrounded_answer:'semantic',unauthorized_promise:'semantic',empty_promise:'semantic',forbidden_ask:'semantic',booking:'outcome',message_promised:'outcome',false_success:'outcome',unrequested_booking:'outcome',missed_handoff:'outcome',action_not_allowed:'outcome',duplicate_effect:'execution',retry_risk:'execution',agent_drift:'deployment'};
-const PLABEL={semantic:'A · What was said',outcome:'B · What happened',execution:'C · How it ran',deployment:'Deployment'};
+const PLABEL={semantic:'What the agent said',outcome:'What actually happened',execution:'How it ran',deployment:'Agent setup'};
 const ptag=t=>`<span class="ptag p-${PROBLEM[t]}">${PLABEL[PROBLEM[t]]}</span>`;
 const RECORD=['booking','message_promised','callback_promised','contact_update'];
 const TITLES={callback_promised:'Promised callback',contact_update:'Requested contact update',missed_escalation:'Missed escalation',rule_violation:'Business-rule violation',incomplete_request:'Incomplete request',config_drift:'Live agent out of sync with rules',wrong_information:'Wrong information',ungrounded_answer:'Ungrounded answer',message_promised:'Promised text',duplicate_effect:'Duplicate side effect',retry_risk:'Write landed despite failure',booking:'Booking check',forbidden_ask:'Forbidden ask',unauthorized_promise:'Unauthorized promise',empty_promise:'Empty promise',missed_handoff:'Missed handoff',agent_drift:'Agent changed since approval',false_success:'False success',unrequested_booking:'Unrequested booking',action_not_allowed:'Action outside manifest'};
@@ -824,29 +859,25 @@ const flash=(m,k)=>{S.flash={m,k};};
 
 function itemCard(f){ const call=S.calls.find(c=>c.id===f.callId); const p=f.promised||{};
   let what, trio;
-  if(f.type==='booking'){ const rec=f.obs.at(-1)?.rec; what=f.case?.status==='awaiting'?'Fixed. The customer still needs to hear from you.':f.state==='unknown'?'Lane couldn’t confirm this booking.':/answer one request/.test(f.reason)?'One request, more than one appointment.':'The calendar doesn’t match what the caller agreed.';
+  if(f.type==='booking'){ const rec=f.obs.at(-1)?.rec; what=f.case?.status==='awaiting'?'Fixed. The customer still needs to hear from you.':f.state==='unknown'?'Vaada couldn’t confirm this booking.':/answer one request/.test(f.reason)?'One request, more than one appointment.':'The calendar doesn’t match what the caller agreed.';
     trio=`<div><b>Caller was promised</b>${p.start?fmtLong(p.start):esc(p.action)}</div><div><b>Calendar shows</b>${rec?fmtLong(rec.start)+' · '+rec.status:''}<div class="faint" style="font-size:12px">${esc(f.reason)}</div></div><div><b>Next</b>${f.case?.status==='awaiting'?'Tell the customer, mark contacted':f.state==='unknown'?'Look up the caller, re-check or waive':/answer one request/.test(f.reason)?'Cancel the extra one, then re-check':'Fix the calendar, then re-check'}</div>`; }
   else if(f.type==='message_promised'){ what=f.state==='contradicted'?'The agent promised a text that never went out.':'Text sent; customer follow-up still open.'; trio=`<div><b>Agent promised</b>“${esc(f.span.quote)}”</div><div><b>Conversation shows</b>${esc(f.reason)}</div><div><b>Next</b>Send the text, then re-check</div>`; }
   else if(f.type==='callback_promised'||f.type==='contact_update'){ what=f.type==='callback_promised'?'A promised callback never happened.':'The caller’s new email never reached the CRM.'; trio=`<div><b>Said</b>“${esc(f.span.quote||'')}”</div><div><b>Record shows</b>${esc(f.reason)}</div><div><b>Next</b>${f.type==='callback_promised'?'Create or finish the callback task, then re-check':'Update the contact, then re-check'}</div>`; }
   else if(f.type==='duplicate_effect'||f.type==='retry_risk'){ what=f.type==='duplicate_effect'?'One request produced more than one side effect.':'The tool said it failed, but the write landed.'; trio=`<div><b>Effects observed</b>${(p.effects||[]).length} · ${esc((p.effects||[]).join(', '))}</div><div><b>Why flagged</b>${esc(f.reason)}</div><div><b>Next</b>${f.type==='duplicate_effect'?'Remove the extra, then confirm':'Stop any retry, fix the tool, then confirm'}</div>`; }
   else if(f.type==='agent_drift'){ what=esc(f.reason); trio=`<div><b>Approved</b>manifest v${f.mv} for agent v${S.versions.find(v=>v.version===f.mv).body.agent.approved_agent_version}</div><div><b>Ran</b>agent v${f.agentVer}</div><div><b>Next</b>Re-approve for the new agent, or roll it back</div>`; }
   else { what='“'+esc(f.span.quote)+'”'; trio=`<div><b>${['wrong_information','ungrounded_answer'].includes(f.type)?'Approved fact':'Rule'} · manifest v${f.mv}</b>${esc(f.rule.text)}</div><div><b>Why flagged</b>${esc(f.reason)}</div><div><b>${f.state==='confirmed'?'Status':'Next'}</b>${f.state==='confirmed'?'Confirmed · case open · closes only on a passing re-test':'Read the clip, then confirm or dismiss'}</div>`; }
-  return `<button class="item" data-open="${f.id}"><div class="prio ${f.severity==='high'?'':'med'}">${f.severity==='high'?'P1':'P2'}</div><div style="min-width:0"><div class="kind">${ptag(f.type)}<b style="color:var(--ink)">Bright Smile Dental</b>·${TITLES[f.type]}${RECORD.includes(f.type)?' '+pill(f.state):''}${f.changed?' <span class="pill s-medium plain">agent changed</span>':''}${f.boundary?' <span class="pill s-boundary plain">boundary</span>':''}<span class="faint">· ${ago(call.end)}</span></div><div class="what">${what}</div><div class="trio">${trio}</div></div><div>${pill(f.severity)}</div></button>`; }
+  return `<button class="item" data-open="${f.id}"><div class="prio ${f.severity==='high'?'':'med'}">${f.severity==='high'?'P1':'P2'}</div><div style="min-width:0"><div class="kind">${ptag(f.type)}<b style="color:var(--ink)">Bright Smile Dental</b><span>${TITLES[f.type]}</span>${RECORD.includes(f.type)?' '+pill(f.state):''}${f.changed?' <span class="pill s-medium plain">agent changed</span>':''}${f.boundary?' <span class="pill s-boundary plain">boundary</span>':''}<span class="faint">· ${ago(call.end)}</span></div><div class="what">${what}</div><div class="trio">${trio}</div></div><div>${pill(f.severity)}</div></button>`; }
 function viewInbox(){
   const items=needsAction(); const real=S.findings.filter(f=>!S.calls.find(c=>c.id===f.callId).trial);
   const bk=real.filter(f=>f.type==='booking'&&f.state!=='superseded'), decided=bk.filter(f=>['verified','contradicted'].includes(f.state)).length;
   const monitored=S.calls.filter(c=>!c.trial);
-  return `<div class="top"><div><div class="eyebrow">Northstar Voice Co. · Bright Smile Dental (sandbox)</div>
-  <h1>${items.length?`${items.length} thing${items.length>1?'s':''} the agent <em>started but didn’t finish.</em>`:'Nothing needs you. <em>Every check is closed.</em>'}</h1>
-  <p class="lede">Sorted into the three problems: what the agent said (A), what actually happened (B), how it ran (C). Click a problem to filter, then open a card. The “not 9, make it 10” booking shows the fix-and-verify loop.</p></div>
+  return `<div class="top"><div><div class="eyebrow">Northstar Voice Co., sandbox data for Bright Smile Dental</div>
+  <h1>${items.length?`${items.length} promise${items.length>1?'s':''} to look at`:'Every promise checks out. Nothing needs you.'}</h1>
+  <p class="lede">Each row compares what a caller was told with what the record shows. Filter by kind of problem, then open a row. The “not 9, make it 10” booking walks through fixing a record and verifying the fix.</p></div>
   <button class="btn green" data-go="test">Test your own call</button></div>
-  <div class="grid g4" style="margin-bottom:20px">
-   <div class="card stat"><div class="n">${monitored.filter(c=>c.coverage==='checked').length}<small>/ ${monitored.length}</small></div><div class="l">Calls checked</div></div>
-   <div class="card stat"><div class="n">${decided}<small>/ ${bk.length}</small></div><div class="l">Bookings decided by a calendar read</div></div>
-   <div class="card stat"><div class="n">${bk.filter(f=>f.state==='verified').length}</div><div class="l">Bookings verified</div></div>
-   <div class="card stat"><div class="n">v${currentVersion()?.version}</div><div class="l">Manifest in force · approved by ${esc(currentVersion()?.approval.name)}</div></div></div>
-  <div class="probs">${['semantic','outcome','execution'].map(k=>`<button data-prob="${k}" aria-pressed="${S.problem===k}"><span class="ptag p-${k}">${PLABEL[k]}</span><b>${items.filter(f=>PROBLEM[f.type]===k).length} open</b><span class="muted" style="font-size:12.5px">${{semantic:'wrong facts, ungrounded answers, forbidden asks and promises',outcome:'bookings and texts checked against the record',execution:'duplicate effects, writes that landed despite a failure'}[k]}</span></button>`).join('')}</div>
-  <div class="stack">${items.filter(f=>!S.problem||PROBLEM[f.type]===S.problem).map(itemCard).join('')||'<div class="card empty">All clear.</div>'}</div>
+  <p class="tally"><b>${monitored.filter(c=>c.coverage==='checked').length} of ${monitored.length}</b> calls checked this week. <b>${decided} of ${bk.length}</b> bookings were decided by a calendar read, and <b>${bk.filter(f=>f.state==='verified').length}</b> of them checked out. Rules in force: manifest v${currentVersion()?.version}, approved by ${esc(currentVersion()?.approval.name)}.</p>
+  <div class="probs">${['semantic','outcome','execution'].map(k=>`<button data-prob="${k}" aria-pressed="${S.problem===k}"><span class="ptag p-${k}">${PLABEL[k]}</span><b>${items.filter(f=>PROBLEM[f.type]===k).length}</b><span class="muted" style="font-size:12.5px">${{semantic:'wrong facts, ungrounded answers, forbidden asks and promises',outcome:'bookings and texts checked against the record',execution:'duplicate effects, writes that landed despite a failure'}[k]}</span></button>`).join('')}</div>
+  <div class="stack">${items.filter(f=>!S.problem||PROBLEM[f.type]===S.problem).map(itemCard).join('')||'<div class="card empty">Nothing in this filter.</div>'}</div>
   <h3 style="margin:30px 0 10px">Recent calls</h3>
   <div class="card" style="padding:4px 10px"><div class="tw"><table><thead><tr><th>Call start (Chicago)</th><th>Bound to</th><th>Agent</th><th>Findings</th></tr></thead><tbody>
   ${monitored.slice().reverse().map(c=>`<tr><td>${fmtLocal(c.start)}${c.label?` <span class="faint">· ${esc(c.label)}</span>`:''}</td><td>${c.binding.primary?`<span class="mono">v${c.binding.primary.version} · ${c.binding.primary.sha.slice(0,8)}</span> ${c.binding.status==='boundary'?pill('boundary'):''}`:pill('unbound','no manifest')}</td><td class="mono">v${c.agentVer}${c.receipt.payload.drift!=='none'?' <span class="pill s-medium plain">'+c.receipt.payload.drift.replace(/_/g,' ')+'</span>':''}</td><td>${c.findings.map(id=>{const f=S.findings.find(x=>x.id===id);return `<button class="btn ghost sm" data-open="${id}">${TITLES[f.type]}${f.type==='booking'?' · '+f.state:''}</button>`;}).join(' ')||'<span class="faint">clean</span>'}</td></tr>`).join('')}
@@ -864,13 +895,13 @@ function evidenceCard(f,call){ const r=call.receipt; return `<div class="ev"><di
 function viewDetail(){
   const f=S.findings.find(x=>x.id===S.detail), call=S.calls.find(c=>c.id===f.callId), p=f.promised||{};
   let panes, actions='';
-  if(f.type==='booking'){ const o=f.obs.at(-1), rec=o?.rec; const next=f.state==='contradicted'?'Fix the appointment in the calendar (below), then re-check.':f.state==='unknown'?'Look up the caller. If the booking is right, re-check; if not checkable, waive with a reason.':f.case?.status==='awaiting'?'Record is fixed. Let the customer know, then mark them contacted.':f.state==='verified'?'Nothing to do.':'Lane re-reads the calendar on schedule.';
+  if(f.type==='booking'){ const o=f.obs.at(-1), rec=o?.rec; const next=f.state==='contradicted'?'Fix the appointment in the calendar (below), then re-check.':f.state==='unknown'?'Look up the caller. If the booking is right, re-check; if not checkable, waive with a reason.':f.case?.status==='awaiting'?'Record is fixed. Let the customer know, then mark them contacted.':f.state==='verified'?'Nothing to do.':'Vaada re-reads the calendar on schedule.';
     panes=`<div class="pane"><div class="cap">What the caller finally agreed</div><div class="big">${p.start?fmtLong(p.start):esc(p.action||'—')}</div><div class="muted" style="font-size:13px;margin-top:6px">${esc(p.action)}${p.corrections?.length?' · corrected mid-call':''} · ${esc(p.how||'')}</div></div>
     <div class="pane ${f.state==='verified'?'good':f.state==='contradicted'?'badp':''}"><div class="cap">What the calendar shows</div><div class="big">${rec?fmtLong(rec.start):o?'Not found':'Not read yet'}</div><div class="muted" style="font-size:13px;margin-top:6px">${rec?`${rec.status} · ${rec.id} · ${rec.contact}`:esc(f.reason)}</div></div>
     <div class="pane next"><div class="cap">Next step</div><div class="big">${next}</div></div>`;
     const appt=rec||S.cal.find(a=>a.contact===p.contact);
     if(f.case&&['open','awaiting'].includes(f.case.status)) actions=`<div class="card"><h3>Act</h3>
-      ${appt?`<p class="muted" style="margin-top:4px">Sandbox calendar · stands in for HighLevel, where the operator fixes records. Lane itself never writes.</p>
+      ${appt?`<p class="muted" style="margin-top:4px">Sandbox calendar · stands in for HighLevel, where the operator fixes records. Vaada itself never writes.</p>
       <form class="row" id="fixform" data-appt="${appt.id}" style="margin-top:10px"><label class="f" for="fix-dt" style="margin:0;width:100%">Appointment ${appt.id} start (Chicago)</label><input type="datetime-local" id="fix-dt" value="${(()=>{const q=parts(appt.start);return `${q.y}-${String(q.m).padStart(2,'0')}-${String(q.d).padStart(2,'0')}T${String(q.h).padStart(2,'0')}:${String(q.mi).padStart(2,'0')}`;})()}" style="flex:1;min-width:0"><select id="fix-st" style="width:auto"><option ${appt.status==='booked'?'selected':''}>booked</option><option ${appt.status==='cancelled'?'selected':''}>cancelled</option></select><button class="btn ghost">Save calendar</button></form>`:''}
       <div class="row" style="margin-top:14px"><button class="btn green" data-act="recheck" data-f="${f.id}">Re-check calendar</button><button class="btn ghost" data-act="contacted" data-f="${f.id}">Mark customer contacted</button></div>
       <label class="f" for="waive-r">Waive with a reason</label><div class="row"><input type="text" id="waive-r" placeholder="e.g. caller rebooked by phone" style="flex:1;min-width:0"><button class="btn danger sm" data-act="waive" data-f="${f.id}">Waive</button></div>
@@ -879,7 +910,7 @@ function viewDetail(){
     panes=`<div class="pane"><div class="cap">What the agent promised</div><div class="big">“${esc(f.span.quote)}”</div><div class="muted" style="font-size:13px;margin-top:6px">expected: exactly one text to ${esc(p.phone||p.contact)}</div></div>
     <div class="pane ${f.state==='verified'?'good':f.state==='contradicted'?'badp':''}"><div class="cap">What the conversation shows</div><div class="big">${o?`${n} text${n===1?'':'s'} sent`:'Not read yet'}</div><div class="muted" style="font-size:13px;margin-top:6px">${(o?.msgs||[]).map(m=>fmtLocal(m.at,{hour:'numeric',minute:'2-digit'})+' · “'+esc(m.body)+'”').join('<br>')}</div></div>
     <div class="pane next"><div class="cap">Next step</div><div class="big">${f.state==='contradicted'?'Send the caller the confirmation (below), then re-check.':f.case?.status==='awaiting'?'Let the customer know, then mark them contacted.':'Nothing to do.'}</div></div>`;
-    if(f.case&&['open','awaiting'].includes(f.case.status)) actions=`<div class="card"><h3>Act</h3><p class="muted" style="margin-top:4px">Sandbox conversation · stands in for HighLevel. Lane itself never sends anything.</p><div class="row" style="margin-top:12px"><button class="btn ghost" data-act="sendtext" data-f="${f.id}">Send the text in sandbox</button><button class="btn green" data-act="recheck" data-f="${f.id}">Re-check</button><button class="btn ghost" data-act="contacted" data-f="${f.id}">Mark customer contacted</button></div></div>`;
+    if(f.case&&['open','awaiting'].includes(f.case.status)) actions=`<div class="card"><h3>Act</h3><p class="muted" style="margin-top:4px">Sandbox conversation · stands in for HighLevel. Vaada itself never sends anything.</p><div class="row" style="margin-top:12px"><button class="btn ghost" data-act="sendtext" data-f="${f.id}">Send the text in sandbox</button><button class="btn green" data-act="recheck" data-f="${f.id}">Re-check</button><button class="btn ghost" data-act="contacted" data-f="${f.id}">Mark customer contacted</button></div></div>`;
   } else if(f.type==='agent_drift'){ panes=`<div class="pane"><div class="cap">Approved</div><div class="big">Manifest v${f.mv} for agent v${S.versions.find(v=>v.version===f.mv).body.agent.approved_agent_version}</div></div><div class="pane badp"><div class="cap">Ran</div><div class="big">Agent v${f.agentVer}</div><div class="muted" style="font-size:13px;margin-top:6px">${esc(f.reason)}</div></div><div class="pane next"><div class="cap">Next step</div><div class="big">Re-approve the manifest for the running agent, or roll it back.</div></div>`;
     actions=`<div class="card"><h3>Act</h3><div class="row" style="margin-top:10px"><button class="btn" data-act="reapprove" data-v="${f.agentVer}">Draft a re-approval for agent v${f.agentVer}</button><button class="btn ghost" data-act="confirm" data-f="${f.id}">Acknowledge</button></div></div>`;
   } else if(f.type==='duplicate_effect'||f.type==='retry_risk'){ const c0=S.findings.find(x=>x.id===p.commitment);
@@ -889,7 +920,7 @@ function viewDetail(){
     actions=f.state==='open'?`<div class="card"><h3>Review</h3><div class="row" style="margin-top:10px"><button class="btn" data-act="confirm" data-f="${f.id}">Confirm</button>${c0?`<button class="btn ghost" data-open="${c0.id}">Open the commitment</button>`:''}</div><label class="f" for="dismiss-r">Or dismiss with a reason</label><div class="row"><input type="text" id="dismiss-r" style="flex:1;min-width:0"><button class="btn ghost sm" data-act="dismiss" data-f="${f.id}">Dismiss</button></div></div>`:`<div class="card"><p>${pill(f.state)} ${f.review?esc(f.review):''}</p></div>`;
   } else { panes=`<div class="pane"><div class="cap">What the agent said</div><div class="big">“${esc(f.span.quote)}”</div></div><div class="pane"><div class="cap">${['wrong_information','ungrounded_answer'].includes(f.type)?'Approved fact':'Manifest rule'} · v${f.mv}</div><div class="big">${esc(f.rule.text)}</div><div class="muted" style="font-size:13px;margin-top:6px">${esc(f.reason)}</div></div><div class="pane next"><div class="cap">Next step</div><div class="big">${f.state==='open'?'Confirm it, or dismiss with a reason.':'Reviewed: '+f.state+'.'}</div></div>`;
     actions=f.state==='open'?`<div class="card"><h3>Review</h3><div class="row" style="margin-top:10px"><button class="btn" data-act="confirm" data-f="${f.id}">Confirm violation</button></div><label class="f" for="dismiss-r">Or dismiss with a reason</label><div class="row"><input type="text" id="dismiss-r" placeholder="e.g. agent was quoting the website" style="flex:1;min-width:0"><button class="btn ghost sm" data-act="dismiss" data-f="${f.id}">Dismiss</button></div><p class="muted" style="font-size:12.5px;margin-top:8px">Confirmed findings feed the client report and the next trial; dismissals feed precision tracking.</p></div>`:`<div class="card"><p>${pill(f.state)} ${f.review?esc(f.review):''}</p></div>`; }
-  if(f.state==='confirmed'&&f.case&&f.case.status==='open'&&!RECORD.includes(f.type)) actions=`<div class="card"><h3>Case · open</h3><p class="muted" style="margin-top:4px">Owner ${esc(f.case.owner)}. Acknowledging does not close this. A passing independent check does: ${f.type==='config_drift'||f.type==='agent_drift'?'Lane re-reads the live agent':f.type==='duplicate_effect'||f.type==='retry_risk'?'Lane re-counts the effects':'Lane re-runs the trial scenarios for this rule, 3 runs each'}.</p>
+  if(f.state==='confirmed'&&f.case&&f.case.status==='open'&&!RECORD.includes(f.type)) actions=`<div class="card"><h3>Case · open</h3><p class="muted" style="margin-top:4px">Owner ${esc(f.case.owner)}. Acknowledging does not close this. A passing independent check does: ${f.type==='config_drift'||f.type==='agent_drift'?'Vaada re-reads the live agent':f.type==='duplicate_effect'||f.type==='retry_risk'?'Vaada re-counts the effects':'Vaada re-runs the trial scenarios for this rule, 3 runs each'}.</p>
     <div class="row" style="margin-top:12px"><button class="btn ghost" data-act="${f.type==='agent_drift'?'reapprove':'applyfix'}" data-f="${f.id}" data-v="${f.agentVer}">${f.type==='agent_drift'?'Re-approve for agent v'+f.agentVer:f.type==='config_drift'?'Paste guardrails into the live prompt':'Apply the fix in the sandbox agent'}</button><button class="btn green" data-act="verifyfix" data-f="${f.id}">Verify fix</button></div>
     <label class="f" for="dismiss-r">False positive after all?</label><div class="row"><input type="text" id="dismiss-r" style="flex:1;min-width:0" placeholder="Reason (kept on record)"><button class="btn ghost sm" data-act="dismiss" data-f="${f.id}">Dismiss</button></div></div>`;
   if(f.type==='callback_promised'&&f.case&&['open','awaiting'].includes(f.case.status)) actions=`<div class="card"><h3>Act</h3><p class="muted" style="margin-top:4px">Sandbox CRM · stands in for HighLevel tasks.</p><div class="row" style="margin-top:12px"><button class="btn ghost" data-act="maketask" data-f="${f.id}">Create and complete the callback task</button><button class="btn green" data-act="recheck" data-f="${f.id}">Re-check</button></div></div>`;
@@ -949,11 +980,11 @@ function viewTest(){
   const r=S.lastRun;
   const res=r?(()=>{ const c=r.call, x=c.extraction; const fs=c.findings.map(id=>S.findings.find(f=>f.id===id));
     return `<div class="card"><div class="row between"><h3>Result</h3>${pill(c.binding.status==='unbound'?'unbound':c.binding.status)}</div>
-      ${!c.binding.primary?'<p class="lede" style="margin-top:6px">No manifest version was in force at this start time, so the call’s coverage is Unknown. Lane never falls back to the latest version.</p>':''}${c.binding.primary&&labels(c.turns).some(l=>l.kind==='handoff_request')&&!withinHours(c.start)?'<p class="muted" style="margin-top:6px">The caller asked for a person outside business hours, so the handoff rule did not apply. Choose “Last weekday at 11 AM” to test it.</p>':''}
+      ${!c.binding.primary?'<p class="lede" style="margin-top:6px">No manifest version was in force at this start time, so the call’s coverage is Unknown. Vaada never falls back to the latest version.</p>':''}${c.binding.primary&&labels(c.turns).some(l=>l.kind==='handoff_request')&&!withinHours(c.start)?'<p class="muted" style="margin-top:6px">The caller asked for a person outside business hours, so the handoff rule did not apply. Choose “Last weekday at 11 AM” to test it.</p>':''}
       ${x?`<p style="margin-top:10px"><b>Caller’s final accepted request:</b> ${x.status==='confirmed'?(x.start?fmtLong(x.start):x.action):x.status==='abstain'?'<span class="pill s-unknown">unknown</span> '+esc(x.reason):'none ('+esc(x.reason)+')'}${x.status==='confirmed'?` <span class="muted">· ${esc(x.reason)}</span>`:''}</p>`:''}
       <div class="stack" style="margin-top:12px">${fs.map(f=>`<button class="item" data-open="${f.id}" style="grid-template-columns:minmax(0,1fr) auto"><div style="min-width:0"><div class="kind">${ptag(f.type)} ${TITLES[f.type]} ${pill(f.state)}${f.boundary?' '+pill('boundary'):''}</div><div style="margin-top:4px">${esc(f.type==='booking'?f.reason:(f.span.quote?'“'+f.span.quote+'”':f.reason))}</div></div><div>${pill(f.severity)}</div></button>`).join('')||'<p class="muted">No findings: the call closes silently.</p>'}</div></div>
-      <div class="ev"><div class="k">IWCB binding receipt #${c.receipt.seq}</div><div class="kv"><div><div class="k">status</div><div class="v">${c.receipt.payload.status}</div></div><div><div class="k">manifest</div><div class="v">${c.binding.primary?'v'+c.binding.primary.version:'none'}</div></div><div><div class="k">judged under</div><div class="v">${c.binding.cands.map(v=>'v'+v.version).join(' + ')||'—'}</div></div><div><div class="k">drift</div><div class="v">${c.receipt.payload.drift}</div></div></div><div class="kv one"><div><div class="k">receipt hash</div><div class="v ok-t">${c.receipt.hash}</div></div></div><pre>${esc(JSON.stringify(c.receipt.payload,(k,v)=>k==='start'||k==='bound_at'?new Date(v).toISOString():v,2))}</pre></div>`; })():`<div class="card empty"><h3>Run a call to see Lane’s verdict</h3><p>The transcript on the left is ready: press <b>Run checks</b>.</p></div>`;
-  return `<div class="top"><div><div class="eyebrow">Monitor, one call at a time</div><h1>Test a <em>call</em></h1><p class="lede">Pick a preset or write your own transcript, then choose what the tools did. Lane binds the call to a manifest version and checks all three problems: what the agent said (A), what actually happened in the records (B), and whether it happened exactly once (C).</p></div></div>
+      <div class="ev"><div class="k">IWCB binding receipt #${c.receipt.seq}</div><div class="kv"><div><div class="k">status</div><div class="v">${c.receipt.payload.status}</div></div><div><div class="k">manifest</div><div class="v">${c.binding.primary?'v'+c.binding.primary.version:'none'}</div></div><div><div class="k">judged under</div><div class="v">${c.binding.cands.map(v=>'v'+v.version).join(' + ')||'—'}</div></div><div><div class="k">drift</div><div class="v">${c.receipt.payload.drift}</div></div></div><div class="kv one"><div><div class="k">receipt hash</div><div class="v ok-t">${c.receipt.hash}</div></div></div><pre>${esc(JSON.stringify(c.receipt.payload,(k,v)=>k==='start'||k==='bound_at'?new Date(v).toISOString():v,2))}</pre></div>`; })():`<div class="card empty"><h3>Run a call to see Vaada’s verdict</h3><p>The transcript on the left is ready: press <b>Run checks</b>.</p></div>`;
+  return `<div class="top"><div><div class="eyebrow">Monitor, one call at a time</div><h1>Test a call</h1><p class="lede">Pick a preset or write your own transcript, then choose what the tools did. Vaada binds the call to a manifest version and checks all three problems: what the agent said (A), what actually happened in the records (B), and whether it happened exactly once (C).</p></div></div>
   <div class="split"><form class="card" id="testform">
     <label class="f" for="t-preset">Start from</label><select id="t-preset">${Object.entries(PRESETS).map(([k,p])=>`<option value="${k}" ${S.preset===k?'selected':''}>${esc(p.label)}</option>`).join('')}</select>
     <label class="f" for="t-text">Transcript (one turn per line, “Caller:” or “Agent:”)</label><textarea id="t-text" rows="8">${esc(S.text??sampleText())}</textarea>
@@ -1003,13 +1034,13 @@ function viewManifest(){
   const cur=currentVersion(), b=cur.body, d=S.draft||{...b,handoff:{...b.handoff},agentVer:b.agent.approved_agent_version};
   const chip=(name,val,on,no)=>`<label class="chk ${no?'no':''}"><input type="checkbox" data-draft="${name}" value="${val}" ${on?'checked':''}>${esc(name==='allowed_actions'?val:(name==='never_ask'?ASK[val]:PROM[val]))}</label>`;
   const preview=buildBody(d,cur.version+1,cur.sha,d.agentVer,null); const diff=diffBodies(b,preview);
-  return `<div class="top"><div><div class="eyebrow">What Bright Smile Dental’s agent may do, ask and promise</div><h1>Manifest <em>v${cur.version}</em></h1><p class="lede">In force since ${fmtLong(cur.effective_from)} · approved by ${esc(cur.approval.name)} (${cur.approval.role==='client'?'client':'agency on the client’s behalf'}) · bound to agent v${b.agent.approved_agent_version}</p></div></div>
+  return `<div class="top"><div><div class="eyebrow">What Bright Smile Dental’s agent may do, ask and promise</div><h1>Manifest v${cur.version}</h1><p class="lede">In force since ${fmtLong(cur.effective_from)} · approved by ${esc(cur.approval.name)} (${cur.approval.role==='client'?'client':'agency on the client’s behalf'}) · bound to agent v${b.agent.approved_agent_version}</p></div></div>
   <div class="split"><div class="stack"><div class="card"><div class="row between"><h3>Draft the next version</h3>${pill(diff.length?'pending':'dismissed',diff.length?`${diff.length} change${diff.length>1?'s':''} — not active`:'no changes')}</div>
     <label class="f">Allowed actions</label><div class="chips">${ACTIONS.map(a=>chip('allowed_actions',a,d.allowed_actions.includes(a))).join('')}</div>
     <label class="f">Promises this setup can actually deliver</label><div class="chips">${DELIVERABLE.map(a=>chip('deliverable_promises',a,d.deliverable_promises.includes(a))).join('')}</div>
     <label class="f">Never promise</label><div class="chips">${Object.keys(PROM).map(a=>chip('never_promise',a,d.never_promise.includes(a),true)).join('')}</div>
     <label class="f">Never ask for</label><div class="chips">${Object.keys(ASK).map(a=>chip('never_ask',a,d.never_ask.includes(a),true)).join('')}</div>
-    <label class="f">Business facts the agent may state <span class="faint">(empty = Lane won’t judge claims about it)</span></label>
+    <label class="f">Business facts the agent may state <span class="faint">(empty = Vaada won’t judge claims about it)</span></label>
     <div class="grid g3">${Object.entries((d.facts||EMPTY_FACTS).prices||{}).map(([k,v])=>`<div><label class="f" for="m-p-${k}" style="margin-top:0">${esc(k)} price ($)</label><input type="text" id="m-p-${k}" data-fact="prices.${k}" value="${v}"></div>`).join('')}
       ${[['refund_window_days','Refund window (days)'],['cancellation_notice_hours','Cancellation notice (hours)'],['cancellation_fee','Late-cancel fee ($)']].map(([k,l])=>`<div><label class="f" for="m-${k}" style="margin-top:0">${l}</label><input type="text" id="m-${k}" data-fact="${k}" value="${(d.facts||EMPTY_FACTS)[k]??''}"></div>`).join('')}
       <div><label class="f" for="m-ins" style="margin-top:0">Accepts insurance</label><select id="m-ins" data-fact="accepts_insurance">${[['','Not stated'],['true','Yes'],['false','No']].map(([k,l])=>`<option value="${k}" ${String((d.facts||EMPTY_FACTS).accepts_insurance??'')===k?'selected':''}>${l}</option>`).join('')}</select></div></div>
@@ -1043,14 +1074,14 @@ function viewTrials(){
 
 function viewIntegrity(){
   const r=S.integ;
-  return `<div class="top"><div><div class="eyebrow">IWCB integrity check</div><h1>${!r?'Verify the <em>chain</em>':r.ok?'Chain intact. <em>Every binding re-derives.</em>':`<em>${r.issues.length} problem${r.issues.length>1?'s':''}</em> found`}</h1>
-  <p class="lede">Lane recomputes each manifest hash, follows the prev-hash links, verifies each signature and approval, walks the binding-receipt chain, and re-derives which version every call should have been judged by.</p></div>
+  return `<div class="top"><div><div class="eyebrow">IWCB integrity check</div><h1>${!r?'Verify the chain':r.ok?'Chain intact. <em>Every binding re-derives.</em>':`<em>${r.issues.length} problem${r.issues.length>1?'s':''}</em> found`}</h1>
+  <p class="lede">Vaada recomputes each manifest hash, follows the prev-hash links, verifies each signature and approval, walks the binding-receipt chain, and re-derives which version every call should have been judged by.</p></div>
   <div class="row"><button class="btn green" data-act="verify">Run integrity check</button>${S.attack?'<button class="btn ghost" data-act="undo">Undo the attack</button>':'<button class="btn danger" data-act="attack">Simulate a back-dated version</button>'}</div></div>
   ${S.attack?`<div class="notice" style="margin-bottom:14px"><b>Attack in place.</b> Someone with database and key access appended v${S.attack}: correctly chained to the previous hash, correctly signed, client-approved, but dated 3 days ago. A plain hash chain accepts it. Run the check.</div>`:''}
   ${r?`<div class="grid g4"><div class="card stat"><div class="n">${r.versions}</div><div class="l">Versions checked</div></div><div class="card stat"><div class="n">${r.receipts}</div><div class="l">Binding receipts walked</div></div><div class="card stat"><div class="n">${r.rederived}<small>/ ${r.receipts}</small></div><div class="l">Bindings re-derived identically</div></div><div class="card stat"><div class="n">${r.issues.length}</div><div class="l">Issues</div></div></div>
   ${r.issues.length?`<div class="card" style="margin-top:14px">${r.issues.map(i=>`<p style="padding:7px 0;border-top:1px solid var(--line)">${pill('fail','issue')} ${esc(i)}</p>`).join('')}</div>`:''}
   <div class="ev" style="margin-top:14px"><div class="kv"><div><div class="k">manifest chain head</div><div class="v ok-t">${r.head}</div></div><div><div class="k">receipt chain head</div><div class="v ok-t">${r.rhead}</div></div></div></div>`:'<div class="card empty"><h3>Press “Run integrity check”</h3><p>Then try the attack button and run it again.</p></div>'}
-  <p class="muted" style="margin-top:14px;font-size:13px;max-width:72ch">What this proves: tamper evidence inside Lane’s own system. Whoever controls Lane’s key and database could still rewrite both, so publishing daily Merkle roots of the receipts to a public append-only log is the v3 step.</p>`;
+  <p class="muted" style="margin-top:14px;font-size:13px;max-width:72ch">What this proves: tamper evidence inside Vaada’s own system. Whoever controls Vaada’s key and database could still rewrite both, so publishing daily Merkle roots of the receipts to a public append-only log is the v3 step.</p>`;
 }
 
 // ============================================================== events
@@ -1062,7 +1093,7 @@ document.addEventListener('click', async e=>{
   if(el.dataset.open) return go('inbox',+el.dataset.open);
   const a=el.dataset.act, f=el.dataset.f?S.findings.find(x=>x.id===+el.dataset.f):null;
   if(a==='recheck'){ f.case.log.push({at:now(),who:'Abhaya',what:'Re-check requested'}); check(f,'manual'); flash(f.state==='verified'?'Verified: the calendar now matches what the caller agreed.':`Still ${f.state}: the calendar does not match yet.`,f.state==='verified'?'':'warn'); render(); }
-  else if(a==='contacted'){ f.case.contact='contacted'; f.case.log.push({at:now(),who:'Abhaya',what:'Customer contacted'}); if(f.case.status==='awaiting'){ f.case.status='closed'; f.case.log.push({at:now(),who:'Lane',what:'Closed: fixed and customer contacted'}); } flash('Saved to the case log.'); render(); }
+  else if(a==='contacted'){ f.case.contact='contacted'; f.case.log.push({at:now(),who:'Abhaya',what:'Customer contacted'}); if(f.case.status==='awaiting'){ f.case.status='closed'; f.case.log.push({at:now(),who:'Vaada',what:'Closed: fixed and customer contacted'}); } flash('Saved to the case log.'); render(); }
   else if(a==='waive'){ const r=$('#waive-r').value.trim(); if(!r){ flash('Waiving needs a reason.','err'); return render(); } f.case.status='waived'; f.state='waived'; f.case.log.push({at:now(),who:'Abhaya',what:'Waived: '+r}); flash('Waived. The evidence stays on record.'); render(); }
   else if(a==='confirm'){ f.state='confirmed'; f.review='by Abhaya just now'; f.case={status:'open',owner:'Abhaya',contact:'not_needed',log:[{at:now(),who:'Abhaya',what:'Confirmed. Case opened: fix the cause, then Verify fix. Acknowledging does not close it.'}]}; flash('Confirmed and a case is open. It closes only when an independent check passes.'); render(); }
   else if(a==='verifyfix'){ el.textContent='Checking…'; const r=await verifyFix(f); flash(r.ok?'Verified fixed: '+r.why:'Not fixed yet: '+r.why, r.ok?'':'warn'); render(); }

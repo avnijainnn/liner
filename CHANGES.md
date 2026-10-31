@@ -2,7 +2,7 @@
 
 ## Bugs and spec violations in the previous code
 1. **Two divergent codebases.** `app/` and `demo_verified/app/` had different logic, plus `.bak` files and about 15 one-off Windows patch notes. These are replaced by a single `app/`.
-2. **The manifest fell back to unapproved versions.** `manifest_for_start` returned *any* manifest for demo clients, which breaks spec rule 5. Lane now resolves only approved versions and never uses "latest".
+2. **The manifest fell back to unapproved versions.** `manifest_for_start` returned *any* manifest for demo clients, which breaks spec rule 5. Vaada now resolves only approved versions and never uses "latest".
 3. **The chain was never verified.** `prev_hash` was stored but nothing walked it, and there was no Ed25519 envelope and no integrity check. All three now exist, and a back-dated append is detected too.
 4. **Drift was a string comparison** that opened one finding per call. It is now a capability-surface classification with one finding per client per version pair.
 5. **Only 1 of the 4 transcript checks existed.** Unauthorized promise ran only with an OpenAI key and was skipped for demo clients. All four checks now run offline, with optional LLM labels.
@@ -37,7 +37,7 @@
 - Transfer outcome is read from the transfer tool's result, so a failed transfer counts as missed.
 - Callback promises are checked against CRM tasks, with an SLA in the manifest.
 - Manifest `booking_rules` (business hours, minimum notice, maximum days ahead, excluded services) and `escalations` are signed and approved like every other field. Violations are findings.
-- Multi-intent calls: email, phone and callback requests are detected. Each one must end in a verified outcome, or Lane raises `incomplete_request`.
+- Multi-intent calls: email, phone and callback requests are detected. Each one must end in a verified outcome, or Vaada raises `incomplete_request`.
 - `config_drift` compares the live prompt and tools with the approved manifest.
 - Verify-to-close: confirming opens a case and never closes it. "Verify fix" runs a fresh read, an agent re-read, or a targeted retest trial.
 - New trial scenarios for each of the above. The sandbox artifact ships the same features.
@@ -54,7 +54,7 @@
 - 72 offline tests.
 
 ## Added: model as a second reader, with voting
-- `LANE_EXTRACT_MODE=vote`: rules and model both read every call. The model's answer is checked against the transcript:
+- `VAADA_EXTRACT_MODE=vote`: rules and model both read every call. The model's answer is checked against the transcript:
   - quotes are word for word, from the right speaker and in the right order;
   - the confirmation is not a question;
   - the date and time were actually said.
@@ -64,4 +64,13 @@
 - The default Anthropic model is now claude-haiku-5-5. 79 offline tests.
 
 ## Added: Groq
-- `LANE_EXTRACTOR=groq` / `LANE_LABELER=groq` use Groq's OpenAI-compatible API (`GROQ_API_KEY`, default model llama-3.3-70b-versatile). `LANE_OPENAI_BASE` lets any OpenAI-compatible endpoint be used.
+- `VAADA_EXTRACTOR=groq` / `VAADA_LABELER=groq` use Groq's OpenAI-compatible API (`GROQ_API_KEY`, default model llama-3.3-70b-versatile). `VAADA_OPENAI_BASE` lets any OpenAI-compatible endpoint be used.
+
+## Renamed to Vaada, new interface
+- Lane is now Vaada (वादा, "promise"). `VAADA_*` settings replace `LANE_*`; the old names still work.
+- New interface built around one comparison: what the caller was told ≠ (or =) what the record shows.
+  - Promises are set in carbon-copy blue, records in plain type.
+  - One typeface (Archivo), sentence-case labels, no shadows.
+  - Findings are rows in a single sheet, with a severity colour on the edge.
+  - Works on phones and in dark mode.
+- The sandbox page uses the same design.

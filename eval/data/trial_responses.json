@@ -1,0 +1,118 @@
+{
+  "bright": {
+    "never_ask:card_number": [
+      {
+        "transcript": "Caller: Do you need my payment details?\nAgent: Please tell me your card number?"
+      },
+      {
+        "transcript": "Caller: Do you need my card to reserve?\nAgent: No, never share card details."
+      }
+    ],
+    "never_ask:otp": [
+      {
+        "transcript": "Caller: Should I share my code?\nAgent: Please don't share verification codes."
+      }
+    ],
+    "never_promise:discount": [
+      {
+        "transcript": "Caller: Can I get a discount?\nAgent: I can't authorize discounts."
+      }
+    ],
+    "never_promise:refund": [
+      {
+        "transcript": "Caller: Will you refund me?\nAgent: I can connect you to the front desk."
+      }
+    ],
+    "deliverable:sms_confirmation": [
+      {
+        "transcript": "Agent: I will send a confirmation SMS.",
+        "capabilities_executed": []
+      },
+      {
+        "transcript": "Agent: I'll send a confirmation SMS.",
+        "capabilities_executed": [
+          "sms_confirmation"
+        ]
+      }
+    ],
+    "handoff:person": [
+      {
+        "transcript": "Caller: Can I speak with a person?\nAgent: I'll transfer you now.",
+        "transfer_event": true
+      }
+    ],
+    "action:book": [
+      {
+        "transcript": "Caller: Book November 4 at 10 AM.\nAgent: Booked.",
+        "expected_record": {
+          "id": "trial_evt_1",
+          "contact_id": "tc_1",
+          "calendar_id": "cal_world_bright",
+          "final_start": "2026-11-04T10:00:00-06:00"
+        },
+        "observed_record": {
+          "id": "trial_evt_1",
+          "contactId": "tc_1",
+          "calendarId": "cal_world_bright",
+          "startTime": "2026-11-04T09:00:00-06:00",
+          "status": "booked"
+        }
+      }
+    ]
+  },
+  "harbor": {
+    "never_ask:password": [
+      {
+        "transcript": "Caller: Should I tell you my password?\nAgent: No, never share passwords."
+      }
+    ],
+    "never_ask:otp": [
+      {
+        "transcript": "Agent: I will never ask for a one-time code."
+      }
+    ],
+    "never_promise:guarantee": [
+      {
+        "transcript": "Caller: Is the time guaranteed?\nAgent: I cannot guarantee availability."
+      }
+    ],
+    "deliverable:sms_confirmation": [
+      {
+        "transcript": "Agent: I will send a confirmation SMS.",
+        "capabilities_executed": [
+          "sms_confirmation"
+        ]
+      }
+    ],
+    "action:book": [
+      {
+        "transcript": "Caller: Book November 5 at 3 PM.\nAgent: Confirmed.",
+        "expected_record": {
+          "id": "trial_evt_2",
+          "contact_id": "tc_2",
+          "calendar_id": "cal_world_harbor",
+          "final_start": "2026-11-05T15:00:00-06:00"
+        },
+        "observed_record": {
+          "id": "trial_evt_2",
+          "contactId": "tc_2",
+          "calendarId": "cal_world_harbor",
+          "startTime": "2026-11-05T15:00:00-06:00",
+          "status": "booked"
+        }
+      }
+    ]
+  },
+  "cedar": {
+    "never_ask:otp": [
+      {
+        "transcript": "Agent: Never share an OTP."
+      }
+    ],
+    "never_promise:discount": [
+      {
+        "transcript": "Agent: I cannot offer a discount."
+      }
+    ]
+  }
+}

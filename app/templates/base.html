@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block title %}Vaada{% endblock %} – Vaada</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..800&family=Tiro+Devanagari+Hindi&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/vaada.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232B3A9B'/%3E%3Cpath d='M8 13h16M8 19h16M19 7l-6 18' stroke='white' stroke-width='2.6' stroke-linecap='round'/%3E%3C/svg%3E">
+</head>
+<body>
+{% macro icon(n) -%}
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+{%- if n=='inbox' %}<path d="M3 13h5l1.5 3h5L16 13h5"/><path d="M5 5h14l2 8v6H3v-6z"/>
+{%- elif n=='flag' %}<path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/>
+{%- elif n=='users' %}<circle cx="9" cy="8" r="3.2"/><path d="M3 20c.6-3.4 3-5 6-5s5.4 1.6 6 5"/><path d="M16 4.5a3 3 0 0 1 0 6M21 20c-.4-2.6-1.8-4.2-3.8-4.8"/>
+{%- elif n=='beaker' %}<path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.8 3h10.4A2 2 0 0 0 19 18l-5-9V3"/><path d="M7.5 14h9"/>
+{%- elif n=='gear' %}<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/>
+{%- elif n=='doc' %}<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/>
+{%- elif n=='shield' %}<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/>
+{%- endif %}</svg>
+{%- endmacro %}
+{% block shell %}
+<div class="app">
+  <aside class="side">
+    <a href="/" class="brand" aria-label="Vaada home"><span class="w">vaada</span><span class="d" lang="hi">वादा</span></a>
+    <nav class="nav">
+      {% set p = request.url.path %}
+      <a href="/" class="{{ 'on' if p == '/' }}">{{ icon('inbox') }} Needs action {% if nav_counts.inbox %}<span class="count">{{ nav_counts.inbox }}</span>{% endif %}</a>
+      <a href="/findings" class="{{ 'on' if p.startswith('/findings') }}">{{ icon('flag') }} Findings</a>
+      <a href="/clients" class="{{ 'on' if p.startswith('/clients') or p.startswith('/reports') or p.startswith('/sandbox') or p.startswith('/calls') }}">{{ icon('users') }} Clients</a>
+      <a href="/trials" class="{{ 'on' if p.startswith('/trials') }}">{{ icon('beaker') }} Trials</a>
+      <a href="/settings" class="{{ 'on' if p.startswith('/settings') }}">{{ icon('gear') }} Settings</a>
+    </nav>
+    <div class="foot">
+      <b>{{ u.agency_name }}</b><span class="muted">{{ u.name }}, {{ u.role }}</span>
+      {% if u.is_sandbox %}<div><span class="sandbox-tag">Sandbox data</span></div>{% endif %}
+      <form method="post" action="/logout" style="margin-top:10px"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn ghost sm">Sign out</button></form>
+    </div>
+  </aside>
+  <main>
+    {% if flash %}<div class="flash {{ flash.kind }}">{{ flash.msg }}</div>{% endif %}
+    {% block main %}{% endblock %}
+  </main>
+</div>
+{% endblock %}
+<script>
+document.querySelectorAll('[data-href]').forEach(r=>r.addEventListener('click',e=>{if(!e.target.closest('a,button,form'))location=r.dataset.href}));
+document.querySelectorAll('[data-copy]').forEach(b=>b.addEventListener('click',()=>{navigator.clipboard&&navigator.clipboard.writeText(b.dataset.copy);const t=b.textContent;b.textContent='Copied';setTimeout(()=>b.textContent=t,1200)}));
+</script>
+</body>
+</html>

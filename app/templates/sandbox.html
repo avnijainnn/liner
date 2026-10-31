@@ -1,0 +1,20 @@
+{% extends "base.html" %}{% block title %}Sandbox calendar · {{ c.name }}{% endblock %}
+{% block main %}
+<div class="crumbs"><a href="/clients/{{ c.id }}">{{ c.name }}</a> / sandbox calendar</div>
+<div class="top"><div><div class="eyebrow">Stand-in for the client’s HighLevel sub-account</div><h1>Sandbox calendar</h1>
+<p class="lede">The sandbox agent writes here; operators fix records here the way they would in HighLevel. Vaada’s checker only ever reads.</p></div></div>
+<div class="card flat" style="padding:4px 10px"><div class="tablewrap"><table>
+<thead><tr><th>Appointment</th><th>Contact</th><th>Start ({{ c.timezone }})</th><th>Status</th><th>Edit</th></tr></thead><tbody>
+{% for a in rows %}
+<tr style="{{ 'background:var(--warn-soft)' if focus==a.appointment_id }}">
+  <td class="mono">{{ a.appointment_id }}<div class="faint" style="font-size:11px">{{ a.calendar_id }}{% if a.written_at %} · write lands {{ a.written_at|ago }}{% endif %}</div></td>
+  <td>{{ a.contact_name or a.contact_id }}</td>
+  <td>{{ a.start_at|localtime(c.timezone, '%a %d %b %Y, %-I:%M %p') }}</td>
+  <td>{{ pill('verified' if a.status=='booked' else 'dismissed', a.status) }}</td>
+  <td><form method="post" class="row" style="gap:6px"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="appointment_id" value="{{ a.appointment_id }}"><input type="hidden" name="return" value="{{ request.query_params.get('return','') }}">
+    <input type="datetime-local" name="start_local" value="{{ a.start_at|localtime(c.timezone, '%Y-%m-%dT%H:%M') }}" style="width:auto;padding:6px">
+    <select name="status" style="width:auto;padding:6px">{% for s in ['booked','confirmed','cancelled'] %}<option {{ 'selected' if a.status==s }}>{{ s }}</option>{% endfor %}</select>
+    <button class="btn sm {{ 'green' if focus==a.appointment_id else 'ghost' }}">Save</button></form></td>
+</tr>{% else %}<tr><td colspan="5" class="empty">No appointments yet.</td></tr>{% endfor %}
+</tbody></table></div></div>
+{% endblock %}

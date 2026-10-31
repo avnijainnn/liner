@@ -1,0 +1,41 @@
+{% extends "base.html" %}{% block title %}{{ c.name }}{% endblock %}
+{% block main %}
+<div class="crumbs"><a href="/clients">Clients</a> / {{ c.name }}</div>
+<div class="top">
+  <div><div class="row" style="margin-bottom:10px">{{ pill(c.connection_status) }}{% if c.is_sandbox %} <span class="pill s-sandbox plain">sandbox client</span>{% endif %}</div>
+    <h1>{{ c.name }}</h1><p class="lede">{{ c.location_label }} · {{ c.timezone }} · Retell <span class="mono">{{ c.retell_agent_id }}</span> · HighLevel <span class="mono">{{ c.hl_location_id or '—' }}</span></p></div>
+  <div class="row">
+    <a class="btn" href="/clients/{{ c.id }}/manifest">Manifest</a>
+    <a class="btn ghost" href="/reports/{{ c.id }}">Client report</a>
+    {% if c.is_sandbox %}<a class="btn ghost" href="/sandbox/{{ c.id }}">Sandbox calendar</a>{% else %}
+    <form method="post" action="/clients/{{ c.id }}/sync" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn ghost">Sync agent + calendars</button></form>{% endif %}
+  </div>
+</div>
+<div class="grid g4">
+  <div class="card stat"><div class="n">{% if row.mv %}v{{ row.mv.version }}{% else %}—{% endif %}</div><div class="l">Manifest in force</div><div class="d mono">{{ row.mv.sha256|short(16) if row.mv else 'nothing approved: coverage unknown' }}</div></div>
+  <div class="card stat"><div class="n">v{{ row.running or '?' }}</div><div class="l">Agent running {% if row.drift %}{{ pill('high','≠ approved v' ~ row.mv.approved_agent_version) }}{% elif row.mv %}{{ pill('verified','= approved') }}{% endif %}</div><div class="d">{{ (snap.tools or [])|length }} tools · {{ snap.name or '' }}</div></div>
+  <div class="card stat"><div class="n">{{ row.coverage[0] }}<small>/ {{ row.coverage[1] }}</small></div><div class="l">Calls checked · 30 days</div><div class="d">never implies every call was checked</div></div>
+  <div class="card stat"><div class="n">{{ row.open }}</div><div class="l">Open findings & cases</div><div class="d"><a class="link" href="/findings?client={{ c.id }}">See all</a></div></div>
+</div>
+
+{% if c.is_sandbox %}
+<div class="card" style="margin-top:16px">
+  <div class="row between"><div><h3 style="margin:0">Simulate a call</h3><p class="muted">Generates a call with the sandbox agent and sends it through the signed Retell webhook path, then runs every check.</p></div>
+  <form method="post" action="/clients/{{ c.id }}/simulate" class="row"><input type="hidden" name="csrf" value="{{ csrf }}">
+    <select name="scenario" style="width:auto">{% for k, t in scenarios %}<option value="{{ k }}">{{ t }}</option>{% endfor %}</select><button class="btn green">Place sandbox call</button></form></div>
+</div>
+{% endif %}
+
+<div class="card flat" style="margin-top:16px;padding:4px 10px"><div class="tablewrap"><table>
+<thead><tr><th>Call</th><th>Bound to</th><th>Agent</th><th>Coverage</th><th>Booking</th><th>Flags</th></tr></thead><tbody>
+{% for k in calls %}
+<tr class="click" data-href="/calls/{{ k.id }}">
+  <td>{{ k.started_at|localtime(c.timezone, '%a %d %b, %-I:%M %p') }}<div class="faint mono" style="font-size:11px">{{ k.retell_call_id[:26] }}</div></td>
+  <td>{% if k.bound_sha %}<span class="mono">{{ k.bound_sha|short(8) }}</span> {% if k.binding_status=='boundary' %}{{ pill('boundary') }}{% endif %}{% else %}{{ pill('unbound') }}{% endif %}</td>
+  <td class="mono">v{{ k.agent_version }}{% if k.drift_class and k.drift_class!='none' %} <span class="pill s-medium plain">{{ k.drift_class|replace('_',' ') }}</span>{% endif %}</td>
+  <td class="muted">{{ (k.coverage or 'pending')|replace('_',' ') }}</td>
+  <td>{% if k.booking_state %}{{ pill(k.booking_state) }}{% else %}<span class="faint">—</span>{% endif %}</td>
+  <td>{% if k.nflags %}<b>{{ k.nflags }}</b>{% else %}<span class="faint">0</span>{% endif %}</td>
+</tr>{% else %}<tr><td colspan="6" class="empty">No calls yet. Point the Retell webhook at Vaada (Settings).</td></tr>{% endfor %}
+</tbody></table></div></div>
+{% endblock %}

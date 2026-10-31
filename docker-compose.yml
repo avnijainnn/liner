@@ -1,21 +1,21 @@
 services:
   db:
     image: postgres:16
-    environment: {POSTGRES_USER: lane, POSTGRES_PASSWORD: lane, POSTGRES_DB: lane}
+    environment: {POSTGRES_USER: vaada, POSTGRES_PASSWORD: vaada, POSTGRES_DB: vaada}
     volumes: [pgdata:/var/lib/postgresql/data]
-    healthcheck: {test: ["CMD-SHELL", "pg_isready -U lane"], interval: 5s, retries: 10}
+    healthcheck: {test: ["CMD-SHELL", "pg_isready -U vaada"], interval: 5s, retries: 10}
   web:
     build: .
     env_file: .env
     environment:
-      DATABASE_URL: postgresql://lane:lane@db:5432/lane
-      LANE_INLINE_WORKER: "false"
+      DATABASE_URL: postgresql://vaada:vaada@db:5432/vaada
+      VAADA_INLINE_WORKER: "false"
     ports: ["8000:8000"]
     depends_on: {db: {condition: service_healthy}}
   worker:
     build: .
     env_file: .env
-    environment: {DATABASE_URL: "postgresql://lane:lane@db:5432/lane", LANE_SEED_ON_START: "false"}
+    environment: {DATABASE_URL: "postgresql://vaada:vaada@db:5432/vaada", VAADA_SEED_ON_START: "false"}
     command: ["python", "-m", "app.worker"]
     depends_on: {db: {condition: service_healthy}}
 volumes: {pgdata: {}}

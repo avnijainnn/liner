@@ -1,0 +1,38 @@
+{% extends "base.html" %}{% block title %}Call{% endblock %}
+{% block main %}
+{% set rp = receipt.payload|j({}) if receipt else {} %}
+<div class="crumbs"><a href="/clients/{{ client.id }}">{{ client.name }}</a> / call</div>
+<div class="top"><div>
+  <div class="row" style="margin-bottom:10px">{{ pill(st.coverage or 'pending') }} {{ pill(st.binding_status or 'unbound') }}{% if st.drift_class and st.drift_class!='none' %} {{ pill('medium', 'drift: ' ~ st.drift_class|replace('_',' ')) }}{% endif %}{% if call.source!='retell' %} <span class="pill s-sandbox plain">{{ call.source }}</span>{% endif %}</div>
+  <h1>{{ call.started_at|localtime(client.timezone, '%a %d %b, %-I:%M %p') }}</h1>
+  <p class="lede">{{ call.retell_call_id }} · agent v{{ call.agent_version }} · {{ fs|length }} finding{{ 's' if fs|length != 1 }}{% if not fs %} — clean calls close silently{% endif %}</p>
+</div></div>
+<div class="split">
+  <div class="stack">
+    {% if fs %}<div class="card flat" style="padding:6px 10px"><table>{% for f in fs %}<tr class="click" data-href="/findings/{{ f.id }}"><td>{{ f.type|title }}</td><td>{{ pill(f.state) }}</td><td class="muted">{{ f.reason }}</td></tr>{% endfor %}</table></div>{% endif %}
+    <div class="card"><h3>Transcript</h3><div class="transcript">
+      {% for t in turns %}<div class="turn {{ t.role }}"><div class="who">{{ 'Agent' if t.role=='agent' else 'Caller' }}</div>{{ t.text }}</div>
+      {% for tl in tools if tl.after_turn == t.i %}<div class="tool">⚙ {{ tl.name }}({{ (tl.arguments|tojson)[:90] }}) → {{ (tl.result|tojson)[:70] }}</div>{% endfor %}{% endfor %}
+      {% if not turns %}<p class="muted">No usable transcript. This call counts in the denominator as unchecked.</p>{% endif %}
+    </div></div>
+  </div>
+  <div class="ev">
+    <div class="k">IWCB binding receipt</div>
+    <h3 style="margin-top:6px">{{ 'Manifest v' ~ rp.manifest_version if rp.manifest_version else 'No manifest in force' }}</h3>
+    <div class="kv">
+      <div><div class="k">status</div><div class="v {{ 'ok' if rp.status=='bound' else 'bad' }}">{{ rp.status }}</div></div>
+      <div><div class="k">clock window ε</div><div class="v">±{{ rp.eps_s }}s</div></div>
+      <div><div class="k">call start</div><div class="v">{{ rp.start }}</div></div>
+      <div><div class="k">drift</div><div class="v">{{ rp.drift }}</div></div>
+    </div>
+    <div class="kv one">
+      <div><div class="k">manifest sha-256</div><div class="v">{{ rp.manifest_sha256 or '—' }}</div></div>
+      <div><div class="k">interval [from, to)</div><div class="v">{% set iv = (rp.witness or {}).interval or [] %}{{ iv[0] if iv else '—' }} → {{ iv[1] if iv|length > 1 and iv[1] else 'open' }}</div></div>
+      <div><div class="k">witness · prev / next / chain head at bind</div><div class="v">{{ ((rp.witness or {}).prev or '∅')[:16] }} / {{ ((rp.witness or {}).next or '∅')[:16] }} / {{ ((rp.witness or {}).chain_head or '∅')[:16] }}</div></div>
+      {% if rp.candidates and rp.candidates|length > 1 %}<div><div class="k">judged under (dual-judgment)</div><div class="v">{% for c in rp.candidates %}{{ c[:16] }}{{ ', ' if not loop.last }}{% endfor %}</div></div>{% endif %}
+      {% if receipt %}<div><div class="k">receipt #{{ receipt.seq }} = H(prev ‖ payload)</div><div class="v ok">{{ receipt.receipt_hash }}</div><div class="v" style="color:var(--ev-muted)">prev {{ receipt.prev_receipt_hash or 'genesis' }}</div></div>{% endif %}
+    </div>
+    <details style="margin-top:14px"><summary style="color:var(--ev-muted)">Raw receipt payload</summary><pre>{{ rp|tojson_pretty }}</pre></details>
+  </div>
+</div>
+{% endblock %}

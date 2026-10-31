@@ -1,0 +1,22 @@
+{% extends "base.html" %}{% block title %}Create agency{% endblock %}
+{% block shell %}
+<div class="hero-auth">
+  <section class="l">
+    <div class="brand" style="padding:0 0 24px"><span class="w">vaada</span><span class="d" lang="hi">वादा</span></div>
+    <div class="claim"><h1>Start with one client. Vaada only reads.</h1>
+    <p class="muted" style="max-width:52ch;margin-top:14px;font-size:16px">Vaada never writes to HighLevel. Connect a Retell webhook and a read-only HighLevel token, draft the manifest, send it to the business for approval.</p></div>
+  </section>
+  <section class="r">
+    <form method="post">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <h2>Create your agency</h2>
+      {% if error %}<div class="flash err" style="margin-top:16px">{{ error }}</div>{% endif %}
+      <label>Agency name</label><input type="text" name="agency" value="{{ f.agency or '' }}" required>
+      <label>Your name</label><input type="text" name="name" value="{{ f.name or '' }}" required>
+      <label>Work email</label><input type="email" name="email" value="{{ f.email or '' }}" required>
+      <label>Password (10+ characters)</label><input type="password" name="password" minlength="10" required>
+      <div class="row" style="margin-top:20px"><button class="btn">Create agency</button><a class="link" href="/login">Sign in instead</a></div>
+    </form>
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends "base.html" %}{% block title %}Settings{% endblock %}
+{% block main %}
+<div class="top"><div><div class="eyebrow">{{ agency.name }}</div><h1>Settings</h1></div></div>
+{% if new_key %}<div class="ev" style="margin-bottom:16px"><div class="k">New API key — shown once</div><div class="row between"><div class="v ok">{{ new_key }}</div><button class="btn sm" data-copy="{{ new_key }}">Copy</button></div></div>{% endif %}
+<div class="grid g2">
+  <div class="card"><h3>Retell</h3>
+    <p class="muted">Webhook URL (enable <span class="mono">call_ended</span>). Vaada verifies <span class="mono">x-retell-signature</span> on the raw body and rejects anything unsigned.</p>
+    <div class="row" style="margin-top:10px"><code style="background:var(--surface-2);padding:8px 10px;border-radius:8px;word-break:break-all;flex:1">{{ webhook }}</code><button class="btn ghost sm" data-copy="{{ webhook }}">Copy</button></div>
+    {% if u.role=='owner' %}<form method="post" style="margin-top:12px"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="action" value="retell">
+      <label>Retell API key {{ pill('verified','saved') if has_retell else pill('unknown','not set') }}</label><input type="password" name="retell_key" autocomplete="off" placeholder="key_…"><button class="btn ghost sm" style="margin-top:10px">Save</button></form>{% endif %}
+  </div>
+  <div class="card"><h3>Vapi</h3>
+    <p class="muted">Set this as the assistant's Server URL and enable <span class="mono">end-of-call-report</span>. Add a Custom Credential with the same secret: Bearer token, legacy <span class="mono">X-Vapi-Secret</span>, or HMAC-SHA256 in <span class="mono">x-signature</span>. Unauthenticated posts are rejected. Use the Vapi assistant ID as the client's agent ID.</p>
+    <div class="row" style="margin-top:10px"><code style="background:var(--surface-2);padding:8px 10px;border-radius:8px;word-break:break-all;flex:1">{{ vapi_webhook }}</code><button class="btn ghost sm" data-copy="{{ vapi_webhook }}">Copy</button></div>
+    {% if u.role=='owner' %}<form method="post" style="margin-top:12px"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="action" value="vapi">
+      <label>Server URL secret {{ pill('verified','saved') if has_vapi else pill('unknown','not set') }}</label><input type="password" name="vapi_secret" autocomplete="off">
+      <label>Vapi private API key (read-only use: assistant prompt and tools)</label><input type="password" name="vapi_key" autocomplete="off"><button class="btn ghost sm" style="margin-top:10px">Save</button></form>{% endif %}
+  </div>
+  <div class="card"><h3>HighLevel</h3>
+    <p class="muted">Agency-level fallback token; per-client tokens on the client form take precedence. Grant read-only scopes only. Vaada has no code path that writes to HighLevel.</p>
+    {% if u.role=='owner' %}<form method="post" style="margin-top:12px"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="action" value="highlevel">
+      <label>Private integration token {{ pill('verified','saved') if has_hl else pill('unknown','not set') }}</label><input type="password" name="hl_token" autocomplete="off"><button class="btn ghost sm" style="margin-top:10px">Save</button></form>{% endif %}
+  </div>
+  <div class="card"><h3>Team</h3>
+    {% for x in users %}<div class="row between" style="padding:8px 0;border-top:1px solid var(--line)"><span>{{ x.name }} <span class="muted">{{ x.email }}</span></span>{{ pill('client' if x.role=='owner' else 'unknown', x.role) }}</div>{% endfor %}
+    {% if u.role=='owner' %}<form method="post" style="margin-top:12px"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="action" value="user">
+      <div class="grid g2"><input type="text" name="name" placeholder="Name" required><input type="email" name="email" placeholder="Email" required>
+      <select name="role"><option value="operator">Operator</option><option value="viewer">Viewer</option><option value="owner">Owner</option></select><input type="password" name="password" placeholder="Temporary password" minlength="10" required></div>
+      <button class="btn ghost sm" style="margin-top:10px">Add teammate</button></form>{% endif %}
+  </div>
+  <div class="card"><h3>Signing keys & API</h3>
+    {% for k in keys %}<div style="padding:8px 0;border-top:1px solid var(--line)"><b class="mono">{{ k.key_id }}</b> <span class="muted">ed25519 · {{ k.created_at|ago }}</span><div class="mono faint" style="font-size:11.5px;word-break:break-all">{{ k.public_key }}</div></div>{% endfor %}
+    <p class="muted" style="margin-top:8px;font-size:13px">Private keys are encrypted at rest with <span class="mono">VAADA_SECRET_KEY</span>. Move them to a managed secrets store before production.</p>
+    {% if u.role=='owner' %}<form method="post" style="margin-top:12px"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="action" value="apikey"><button class="btn ghost sm">Generate API key</button></form>{% endif %}
+    <p class="muted" style="margin-top:10px;font-size:13px">Worker: {% if hb %}last tick {{ hb.at|ago }}{% else %}not seen{% endif %} · <a class="link" href="/health">health</a></p>
+  </div>
+</div>
+{% endblock %}

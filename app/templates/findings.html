@@ -1,0 +1,28 @@
+{% extends "base.html" %}{% block title %}Findings{% endblock %}
+{% block main %}
+<div class="top"><div><div class="eyebrow">All clients</div><h1>Findings</h1>
+<p class="lede">What the agent said (A), what actually happened (B) and how it was executed (C). Every row names the manifest version and agent version it was judged against.</p></div></div>
+<form class="card flat row" method="get" style="margin-bottom:16px;padding:14px">
+  <select name="client" style="width:auto"><option value="">All clients</option>{% for c in clients %}<option value="{{ c.id }}" {{ 'selected' if q.client==c.id|string }}>{{ c.name }}</option>{% endfor %}</select>
+  <select name="type" style="width:auto"><option value="">All types</option>{% for t in ['booking','message_promised','wrong_information','ungrounded_answer','duplicate_effect','retry_risk','forbidden_ask','unauthorized_promise','empty_promise','missed_handoff','agent_drift','false_success','unrequested_booking','action_not_allowed'] %}<option value="{{ t }}" {{ 'selected' if q.type==t }}>{{ t|title }}</option>{% endfor %}</select>
+  <select name="state" style="width:auto"><option value="">Any state</option>{% for t in ['open','confirmed','dismissed','pending','verified','contradicted','unknown','superseded','waived'] %}<option {{ 'selected' if q.state==t }}>{{ t }}</option>{% endfor %}</select>
+  <select name="problem" style="width:auto"><option value="">All problems</option>{% for k, l in [('semantic','What the agent said'),('outcome','What actually happened'),('execution','How it ran')] %}<option value="{{ k }}" {{ 'selected' if q.problem==k }}>{{ l }}</option>{% endfor %}</select>
+  <select name="owner" style="width:auto"><option value="">Any owner</option>{% for o in owners %}<option {{ 'selected' if q.owner==o }}>{{ o }}</option>{% endfor %}</select>
+  <button class="btn sm">Filter</button>{% if q %}<a class="link" href="/findings">Clear</a>{% endif %}
+  <span class="muted" style="margin-left:auto">{{ rows|length }} shown</span>
+</form>
+<div class="card flat" style="padding:4px 10px"><div class="tablewrap"><table>
+<thead><tr><th>Client · call</th><th>Finding</th><th>State</th><th>Judged against</th><th>Owner</th><th></th></tr></thead>
+<tbody>
+{% for r in rows %}{% set p = r.promised|j({}) %}
+<tr class="click" data-href="/findings/{{ r.id }}">
+  <td><b>{{ r.client_name }}</b><div class="faint" style="font-size:12px">{{ r.ended_at|ago }}</div></td>
+  <td>{{ problem_tag(r.type) }} {{ r.type|title }}<div class="muted" style="font-size:13px;max-width:420px">{% if r.type=='booking' %}{{ p.local_text or p.action }} — {{ r.reason }}{% else %}{{ ((r.span|j({})).quote or r.reason)[:120] }}{% endif %}</div></td>
+  <td>{{ pill(r.state) }}{% if r.case_status %}<div class="faint" style="font-size:12px;margin-top:4px">case {{ r.case_status|replace('_',' ') }}</div>{% endif %}</td>
+  <td><span class="mono">v{{ r.manifest_version }} · {{ r.manifest_sha256|short(8) }}</span><div class="faint mono" style="font-size:11.5px">agent v{{ r.agent_version }}{% if r.agent_changed %} ⚠{% endif %}</div></td>
+  <td class="muted">{{ r.owner or '—' }}</td>
+  <td>{{ pill(r.severity) }}</td>
+</tr>
+{% else %}<tr><td colspan="6" class="empty">No findings match.</td></tr>{% endfor %}
+</tbody></table></div></div>
+{% endblock %}
