@@ -1,0 +1,7 @@
+.env
+*.db
+*.db-*
+.lane_dev_secret
+__pycache__/
+eval/.llm_cache.json
+eval/compare_*.json
